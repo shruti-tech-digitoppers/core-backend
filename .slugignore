@@ -1,0 +1,6 @@
+tests/
+documentations/
+.github/
+husky/
+.vscode
+.prettierrc
