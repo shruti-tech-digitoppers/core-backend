@@ -1,4 +1,4 @@
-import { Grade } from "../models/model.mongo.js";
+import { Grade } from "../models/mongo.model.js";
 import { ERROR_CODES } from "../constants/error.constants.js";
 
 export const getGrades = async (req, res) => {

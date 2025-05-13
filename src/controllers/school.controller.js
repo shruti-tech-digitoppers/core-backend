@@ -1,23 +1,62 @@
-import mongoose from "mongoose";
+import { ERROR_CODES } from '../constants/error.constants.js';
+import { School, License } from '../models/mongo.model.js';
 
-const schoolSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true },
-  phone: { type: String, required: true },
-  address: { type: String },
-  block: { type: String },
-  cityId: { type: mongoose.Schema.Types.ObjectId, ref: "City", required: true },
-  stateId: { type: mongoose.Schema.Types.ObjectId, ref: "State", required: true },
-  zip: { type: String },
-  countryId: { type: mongoose.Schema.Types.ObjectId, ref: "Country", required: true },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-  isActive: { type: Boolean, default: true },
-  numberOfStudents: { type: Number, required: true },
-  numberOfTeachers: { type: Number },
-  numberOfLicenses: { type: Number, required: true },
-  partnerId: { type: mongoose.Schema.Types.ObjectId, ref: "Partner", required: true },
-  coordinatorId: { type: mongoose.Schema.Types.ObjectId, ref: "Coordinator" },
-}, { timestamps: true });
+export const createSchool = async (req, res) => {
+  const {
+    name,
+    email,
+    phone,
+    address,
+    block,
+    cityId,
+    stateId,
+    countryId,
+    numberOfStudents,
+    numberOfTeachers,
+    numberOfLicenses,
+    partnerId,
+    coordinatorId,
+    licenseDays,
+  } = req.body;
 
-export default mongoose.model("School", schoolSchema);
+  const school = new School({
+    name,
+    email,
+    phone,
+    address,
+    block,
+    cityId,
+    stateId,
+    countryId,
+    numberOfStudents,
+    numberOfTeachers,
+    numberOfLicenses,
+    partnerId,
+    coordinatorId,
+    schoolId: `school${Date.now()}`,
+  });
+  try {
+    const savedSchool = await school.save();
+    const schoolId = savedSchool._id.toString();
+
+    const schoolIdPart = schoolId.substring(schoolId.length - 3, schoolId.length);
+
+    // create licenses using numberOfLicenses
+    const licenses = [];
+    for (let i = 0; i < numberOfLicenses; i++) {
+      const license = {
+        licenseKey: `lic${schoolIdPart}${i + 1}`,
+        licenseDays,
+        schoolId,
+        partnerId,
+      };
+      licenses.push(license);
+    }
+
+    await License.insertMany(licenses);
+
+    res.json({ message: 'School created', school });
+  } catch (error) {
+    res.status(500).json({ errorCode: ERROR_CODES.SERVER_ERROR, message: error.message || 'Error creating school', error });
+  }
+};

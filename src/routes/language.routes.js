@@ -1,8 +1,8 @@
-import express from "express";
-import { createLanguageInBulk } from "../controllers/language.controller.js";
+import { Router } from 'express';
+import { createLanguageInBulk } from '../controllers/language.controller.js';
 
-const router = express.Router();
+const router = Router();
 
-router.post("/bulk", createLanguageInBulk);
+router.post('/bulk', createLanguageInBulk);
 
 export default router;

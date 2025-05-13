@@ -1,4 +1,4 @@
-import { Language } from "../models/model.mongo.js";
+import { Language } from "../models/mongo.model.js";
 import { ERROR_CODES } from "../constants/error.constants.js";
 
 export const createLanguage = async (req, res) => {

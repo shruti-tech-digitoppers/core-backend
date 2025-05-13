@@ -24,7 +24,7 @@ export default new mongoose.Schema({
   short_name: {
     type: String,
   },
-  is_active: {
+  isActive: {
     type: Boolean,
     default: true,
   },

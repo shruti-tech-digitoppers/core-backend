@@ -1,6 +1,6 @@
-import express from "express";
+import { Router } from "express";
 import { getBoards, getBoardById, createBoard, createBoardInBulk, updateBoard, deleteBoard } from "../controllers/board.controller.js";
-const router = express.Router();
+const router = Router();
 
 router.get("/", getBoards);
 router.get("/:id", getBoardById);

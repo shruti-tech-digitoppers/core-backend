@@ -32,6 +32,8 @@ export const API_MESSAGES = {
 	PG_INVALID_PAYMENT: 'pg/invalid-payment-info',
 	INVALID_ARGUMENT: 'code/invalid-argument',
 	UNKNOWN_ERROR: 'code/unknown-error',
-	ACCOUNT_ALREADY_EXISTS: 'auth/account_already_exists',
+	ACCOUNT_ALREADY_EXISTS: 'auth/account_already_exists',	
   };
+
+//  export const VALIDATION_ERROR = 'code/validation-error';
   

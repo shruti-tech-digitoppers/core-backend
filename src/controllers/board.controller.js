@@ -1,4 +1,4 @@
-import { Board } from "../models/model.mongo.js";
+import { Board } from "../models/mongo.model.js";
 import { ERROR_CODES } from "../constants/error.constants.js";
 
 export const getBoards = async (req, res) => {

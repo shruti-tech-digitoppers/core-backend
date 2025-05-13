@@ -57,7 +57,7 @@ export default new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    is_active: {
+    isActive: {
       type: Boolean,
       default: true,
     },

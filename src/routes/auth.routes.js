@@ -1,7 +1,7 @@
-import express from "express";
-import AuthController from "../controllers/auth.controller.js";
+import { Router } from 'express';
+import AuthController from '../controllers/auth.controller.js';
 
-const router = express.Router();
+const router = Router();
 
 router.get("/activate_license", new AuthController().activateLicense);
 

@@ -11,6 +11,8 @@ import stateSchema from "./state.mongo.model.js";
 import countrySchema from "./country.mongo.model.js";
 import gradeStreamSchema from "./grade-stream.mongo.model.js";
 import l0categoriesSchema from "./l0categories.mongo.model.js";
+import l1categoriesSchema from "./l1categories.mongo.model.js";
+import coordinatorSchema from "./coordinator.mongo.model.js";
 
 const Student = mongoose.model("Student", studentSchema);
 const Grade = mongoose.model("Grade", gradeSchema);
@@ -24,5 +26,7 @@ const City = mongoose.model("City", citySchema);
 const State = mongoose.model("State", stateSchema);
 const Country = mongoose.model("Country", countrySchema);
 const L0Categories = mongoose.model("L0Categories", l0categoriesSchema);
+const L1Categories = mongoose.model("L1Categories", l1categoriesSchema);
+const Coordinator = mongoose.model("Coordinator", coordinatorSchema);
 
-export { Student, Grade, GradeStream, Language, Board, License, Partner, School, City, State, Country, L0Categories };
+export { Student, Grade, GradeStream, Language, Board, License, Partner, Coordinator, School, City, State, Country, L0Categories, L1Categories };
