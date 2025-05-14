@@ -15,8 +15,14 @@ export default new mongoose.Schema(
     licenseDays: { type: Number, required: true, min: 1, max: 10000 },
     isFreeze: { type: Boolean, default: false },
     schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
-    partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner', required: true },
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     platform: { type: String, required: true, enum: ['tablet', 'windows', 'linux', 'ifp'] },
+    apiKey: { type: String, required: true },
+    securityParams: {
+      iv: { type: String },
+      encrypted: { type: String },
+      authTag: { type: String }
+    }
   },
   { timestamps: true }
 );
