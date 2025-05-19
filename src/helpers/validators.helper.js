@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { ValidationError } from '../helpers/errors.helper';
+import { ValidationError } from '../helpers/errors.helper.js';
 
 /**
  * Validates and stores sync data with conflict resolution
@@ -8,7 +8,7 @@ import { ValidationError } from '../helpers/errors.helper';
  * @returns {Promise<Object>} - Processed result
  * @throws {ValidationError} - If validation fails
  */
-async function validateAndStore(item, session) {
+export async function validateAndStore(item, session) {
   const {
     clientId, // Unique ID generated on client side
     type,
@@ -243,5 +243,3 @@ function generateDeterministicId(params) {
   // Note: This is for document ID generation, not for security
   return crypto.createHash('md5').update(idString).digest('hex');
 }
-
-module.exports = validateAndStore;
