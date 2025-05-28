@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   return res.send({ message: 'Welcome to Home Route of DG Backend' });
 });
 
-router.use('/api/license/', licenseRoutes);
+router.use('/api/license', licenseRoutes);
 
 router.use('/api/reports', reportsRoutes);
 
