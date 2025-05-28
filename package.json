@@ -1,0 +1,42 @@
+{
+  "name": "mongo-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "mocha --require @babel/register tests/setup.js 'tests/**/*.test.js'",
+    "test:watch": "mocha --require @babel/register tests/setup.js 'tests/**/*.test.js' --watch",
+    "test:coverage": "c8 mocha --require @babel/register tests/setup.js 'tests/**/*.test.js'",
+    "start:dev": "nodemon server.js"
+  },
+  "nodemonConfig": {
+    "ext": "js",
+    "ignore": [
+      "*.test.ts",
+      "public/"
+    ],
+    "delay": "0"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.3",
+    "@babel/preset-env": "^7.24.3",
+    "@babel/register": "^7.24.1",
+    "c8": "^9.1.0",
+    "chai": "^5.0.0",
+    "mocha": "^10.2.0",
+    "nodemon": "^3.1.7",
+    "sinon": "^17.0.1"
+  }
+}
