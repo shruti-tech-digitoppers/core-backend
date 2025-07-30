@@ -1,6 +1,5 @@
 import { License } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
-
 export const checkLicenseStatus = async (licenseKey) => {
   const license = await License.findOne({ licenseKey });
 
