@@ -1,5 +1,6 @@
 import { License } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
+
 export const checkLicenseStatus = async (licenseKey) => {
   const license = await License.findOne({ licenseKey });
 
@@ -38,7 +39,7 @@ export const checkLicenseStatus = async (licenseKey) => {
   return {
     licenseObj: license,
     isActive: true,
-	errorCode: null,
+	  errorCode: null,
     message: 'License is active',
   };
 };

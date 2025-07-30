@@ -19,29 +19,34 @@ export default new mongoose.Schema(
     userName: { type: String, required: true },
     accessedAt: { type: Date, required: true },
     timestamp: { type: Date, required: true },
-    schoolId: { type: String, required: true },
-    deviceId: { type: String, required: true },
-    deviceType: { type: String, required: true, enum: ['mobile', 'tablet', 'ifp', 'tv', 'other'] },
     languageId: { type: String, required: true },
+    boardId: { type: String, required: true }, // 'cbse', 'icse', 'state_board', etc.
     classId: { type: String, required: true, enum: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11_science', '11_arts', '11_commerce', '12_science', '12_arts', '12_commerce'] },
     sessionId: { type: String, required: true },  // licenseKey_d1g1_userId_d1g1_timestamp; '_d1g1_' is a delimiter
+    categoryId: { type: String, required: true },
+    subcategoryId: { type: String, required: true },
+    contentId: { type: String, required: true },
+    contentName: { type: String, required: true },
     metrics: {
       completionPercentage: { type: Number, required: true },
-      duration: { type: Number, required: true }, // milliseconds instead of seconds
-      correctAnswers: { type: Number, required: true },
-      totalQuestionsAttempted: { type: Number, required: true },
-      pagesViewed: { type: Number, required: true },
-      //interactionPoints: { type: Number, required: true },
-      level: { type: Number, required: true },
+      duration: { type: Number, required: true }, // milliseconds
+      correctAnswers: { type: Number },
+      totalQuestionsAttempted: { type: Number },
+      pagesViewed: { type: Number },
+      interactionPoints: { type: Number },
+      level: { type: Number },
     },
     deviceInfo: {
-      type: { type: String, required: true },
-      os: { type: String, required: true },
+      type: { type: String, enum: ['mobile', 'tablet', 'ifp', 'tv', 'other'] },
+      os: { type: String, enum: ['android', 'ios', 'windows', 'linux', 'macos', 'other'] },
+      deviceId: { type: String }
     },
     metadata: {
       schoolId: { type: String, required: true },
       licenseKey: { type: String, required: true },
       projectId: { type: String, required: true },
+      syncedAt: { type: Date, default: Date.now }, // Timestamp when the report was synced
+      syncStatus: { type: String, enum: ['pending', 'synced', 'failed'], default: 'pending' } // Status of the report sync
     },
   },
   { timestamps: true }

@@ -7,7 +7,8 @@
     "test": "mocha --require @babel/register tests/setup.js 'tests/**/*.test.js'",
     "test:watch": "mocha --require @babel/register tests/setup.js 'tests/**/*.test.js' --watch",
     "test:coverage": "c8 mocha --require @babel/register tests/setup.js 'tests/**/*.test.js'",
-    "start:dev": "nodemon server.js"
+    "start:dev": "nodemon server.js",
+    "debug": "nodemon --inspect server.js"
   },
   "nodemonConfig": {
     "ext": "js",

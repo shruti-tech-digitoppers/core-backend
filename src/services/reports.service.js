@@ -31,14 +31,41 @@ export const validateBatchSize = (reports) => {
 export const processReports = async (reports, license) => {
   try {
     // Add metadata to each report
-    const reportsWithMetadata = reports.map(report => ({
-      ...report,
-      schoolId: license.schoolId,
-      projectId: license.projectId,
-      deviceId: license.registeredTo,
-      syncedAt: new Date(),
-      syncStatus: 'pending'
-    }));
+    const reportsWithMetadata = reports.map(report => {
+      const metrics = {
+        completionPercentage: report.completionPercentage,
+        duration: report.duration, // milliseconds
+        correctAnswers: report.correctAnswers || null,
+        totalQuestionsAttempted: report.totalQuestionsAttempted || null,
+        pagesViewed: report.pagesViewed || null,
+        interactionPoints: report.interactionPoints || null,
+        level: report.level || null
+      }
+  
+      delete report.completionPercentage;
+      delete report.duration;
+      delete report.correctAnswers;
+      delete report.totalQuestionsAttempted;
+      delete report.pagesViewed;
+      delete report.interactionPoints;
+      delete report.level;
+      report.metrics = metrics;
+
+      return {
+        ...report,
+        reportId: report.metadata.licenseKey + '_d1g1_' + report.userId + '_d1g1_' + report.timestamp,
+        deviceInfo: {
+          type: report.deviceInfo.type,
+          os: report.deviceInfo.os,
+          deviceId: license.registeredTo,
+        },
+        metadata: {
+          schoolId: license.schoolId,
+          licenseKey: license.licenseKey,
+          projectId: license.projectId
+        }
+      }
+    });
 
     // Validate each report individually
     const validationResults = await Promise.all(
@@ -76,12 +103,12 @@ export const processReports = async (reports, license) => {
     // Prepare sync status for each report
     const syncStatus = reportsWithMetadata.map((report, index) => {
       const storedReport = storedReports.find(
-        stored => stored.deviceId === report.deviceId && 
+        stored => stored.deviceInfo.deviceId === report.deviceInfo.deviceId && 
                  stored.timestamp === report.timestamp
       );
       
       const invalidReport = invalidReports.find(
-        invalid => invalid.report.deviceId === report.deviceId && 
+        invalid => invalid.report.deviceInfo.deviceId === report.deviceInfo.deviceId && 
                   invalid.report.timestamp === report.timestamp
       );
 

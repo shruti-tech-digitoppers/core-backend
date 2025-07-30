@@ -3,8 +3,6 @@ import { validateAndStore } from '../helpers/validators.helper.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
 import { validateBatchSize, processReports } from '../services/reports.service.js';
 
-const BATCH_SIZE_LIMIT = 500;
-
 export const storeBatchReports = async (req, res) => {
   const reports = req.body;
   const license = req.license;

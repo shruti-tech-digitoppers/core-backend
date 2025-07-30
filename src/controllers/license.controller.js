@@ -53,16 +53,16 @@ export const funActivateLicense = async (req, res) => {
   // Encrypt security parameters with license key
   const encryptedSecurityParams = encrypt(securityParams, licenseKey);
 
-  // activate license
-  license.isRegistered = true;
-  license.registeredTo = deviceId;
-  license.securityParams = encryptedSecurityParams;
-
   if (license.registeredTo == deviceId) {
     license.reusedAt = new Date();
   } else {
     license.registeredAt = new Date();
   }
+
+  // activate license
+  license.isRegistered = true;
+  license.registeredTo = deviceId;
+  license.securityParams = encryptedSecurityParams;
 
   try {
     await license.save();
@@ -73,11 +73,17 @@ export const funActivateLicense = async (req, res) => {
   // fetch school details
   const school = await School.findOne({ _id: license.schoolId }).lean();
   
-  return res.status(200).json({ 
+  return res.status(200).json({
+    success: true,
     message: 'License activated', 
-    data: { 
+    data: {
       school, 
-      config: {},
+      config: {
+        licenseKey: license.licenseKey,
+        licenseDays: license.licenseDays,
+        registeredAt: license.registeredAt,
+        validUntil: securityParams.validUntil,
+      },
       securityParams: {
         apiKey: license.apiKey,
         deviceFingerprint,
