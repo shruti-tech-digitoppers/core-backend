@@ -9,4 +9,9 @@ const License = mongoose.model("License", licenseSchema);
 const Reports = mongoose.model("Reports", reportsSchema);
 const School = mongoose.model("School", schoolSchema);
 
+// Ensure indexes are built, especially the unique index on reportId
+Reports.init().catch(err => {
+  console.error("Reports index creation failed", err);
+});
+
 export { Student, License, Reports, School };

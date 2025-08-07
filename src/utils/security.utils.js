@@ -53,7 +53,7 @@ export const decrypt = (encryptedData, key) => {
 export const generateRequestSignature = (requestData, signingKey, deviceFingerprint) => {
   const timestamp = Date.now();
   const signatureData = {
-    ...requestData,
+    requestData: requestData,
     timestamp,
     deviceFingerprint
   };
@@ -69,7 +69,7 @@ export const generateRequestSignature = (requestData, signingKey, deviceFingerpr
 // Validate request signature
 export const validateRequestSignature = (requestData, signature, signingKey, deviceFingerprint, timestamp) => {
   const signatureData = {
-    ...requestData,
+    requestData: requestData,
     timestamp,
     deviceFingerprint
   };

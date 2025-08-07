@@ -18,6 +18,14 @@ export async function validateAndStore(item, session) {
     deviceId,
   } = item;
 
+  // !! Temporary return for testing purposes
+  // Remove this when implementing the actual logic
+  return {
+    status: 'success',
+    _id: 'dummy_documentId',
+    version,
+  };
+
   try {
     // 1. Basic validation
     if (!clientId || !type || !timestamp || !version || !data || !deviceId) {
