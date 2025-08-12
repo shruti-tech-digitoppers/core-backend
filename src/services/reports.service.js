@@ -135,7 +135,7 @@ export const processReports = async (reports, license) => {
         reportId: report.reportId || `report_${index}`,
         synced: !!storedReport,
         error: invalidReport?.error || null,
-        storedAt: storedReport?.syncedAt || null
+        syncedAt: storedReport?.syncedAt || null
       };
     });
 
@@ -150,7 +150,7 @@ export const processReports = async (reports, license) => {
           validReports: storedReports.map(report => ({
             id: report._id,
             reportId: report.reportId,
-            syncedAt: report.syncedAt
+            syncedAt: report.metadata.syncedAt
           })),
           invalidReports: invalidReports.map(({ report, error }) => ({
             reportId: report.reportId,
