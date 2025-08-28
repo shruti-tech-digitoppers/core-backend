@@ -18,6 +18,7 @@ export default new mongoose.Schema(
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     platform: { type: String, required: true, enum: ['tablet', 'windows', 'linux', 'ifp'] },
     apiKey: { type: String, required: true },
+    passphrase: { type: String, required: true },
     securityParams: {
       iv: { type: String },
       encrypted: { type: String },

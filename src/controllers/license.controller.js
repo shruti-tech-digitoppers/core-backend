@@ -86,6 +86,7 @@ export const funActivateLicense = async (req, res) => {
       },
       securityParams: {
         apiKey: license.apiKey,
+        passphrase: license.passphrase,
         deviceFingerprint,
         offlineToken,
         signingKey
