@@ -5,7 +5,11 @@ import express from 'express';
 const app = express();
 
 import initMongoose from './src/database/mongoose.db.js';
+import { configureStorage } from './src/services/storage.service.js';
+import cors from 'cors';
+
 initMongoose();
+await configureStorage();
 
 import mainRoutes from './src/routes/main.routes.js';
 import dashboardRoutes from './dashboard/routes/main.routes.js';
@@ -15,6 +19,17 @@ import { API_MESSAGES, ERROR_CODES } from './src/constants/error.constants.js';
 app.set('PORT', process.argv[2] || process.env.PORT || 3000);
 
 app.use(express.json());
+
+// CORS configuration to allow dashboard origin and handle preflight
+const corsOptions = {
+    origin: ['http://localhost:4400'],
+    credentials: true,
+    methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+    allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
+    exposedHeaders: ['Content-Disposition']
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // Note: Put routes between transform and "*", otherwise it will create error
 app.use(transform);

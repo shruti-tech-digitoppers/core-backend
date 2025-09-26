@@ -1,5 +1,46 @@
 # DG Backend API Documentation
 
+## Update Storage Configuration
+
+Environment variables:
+
+- `STORAGE_DRIVER` = `s3` | `local`
+- `LOCAL_BUNDLES_DIR` = local path for stored ZIPs (when local)
+- `S3_REGION`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
+- `DOWNLOAD_TOKEN_SECRET` for short-lived download tokens
+
+## New Routes Summary
+
+- Device:
+  - `GET /api/updates/check`
+  - `POST /api/updates/events`
+  - `GET /api/updates/download/:bundleId`
+- Admin:
+  - `POST /api/admin/bundles`
+  - `POST /api/admin/bundles/:id/finalize`
+  - `POST /api/admin/rollouts`
+  - `PUT /api/admin/rollouts/:id`
+  - `GET /api/admin/rollouts`
+  - `GET /api/admin/metrics/updates`
+
+## Upload Flows (S3 vs Local)
+
+- When `STORAGE_DRIVER=s3`:
+  - `POST /api/admin/bundles` returns `{ upload: { url } }` (pre-signed PUT). Client uploads ZIP to S3 directly.
+- When `STORAGE_DRIVER=local`:
+  - `POST /api/admin/bundles` returns `{ upload: { driver: "local" }, multipart: { url: "/api/admin/bundles/:id/upload", field: "file" } }`.
+  - Client uploads ZIP via multipart to `/api/admin/bundles/:id/upload` with field name `file`.
+- After upload (both modes), call `POST /api/admin/bundles/:id/finalize` to compute `sizeBytes` and `sha256` (and later: parse manifests).
+
+## Signing and Required Headers
+
+- All device requests must include headers:
+  - `x-api-key`, `x-device-id`, `x-request-timestamp`, `x-request-signature`, `x-security-version`, `x-offline-token`.
+- Signature scheme:
+  - POST: HMAC over `{ requestData, timestamp, deviceFingerprint }` where `requestData` is the JSON body.
+  - GET: Prefer POST for signed operations. If using GET (e.g., `/api/updates/check`), sign the canonicalized query string as `requestData` (sorted keys, no whitespace) OR migrate to POST for consistency.
+- `x-request-timestamp` must be within ±5 minutes of server time.
+
 ## License Management APIs
 
 ### License Activation

@@ -8,7 +8,7 @@
     "test:watch": "mocha --require @babel/register tests/setup.js 'tests/**/*.test.js' --watch",
     "test:coverage": "c8 mocha --require @babel/register tests/setup.js 'tests/**/*.test.js'",
     "start:dev": "nodemon server.js",
-    "debug": "nodemon --inspect server.js"
+    "dev": "nodemon --inspect server.js"
   },
   "nodemonConfig": {
     "ext": "js",
@@ -28,7 +28,11 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.5"
+    "mongoose": "^8.9.5",
+    "@aws-sdk/client-s3": "^3.876.0",
+    "@aws-sdk/s3-request-presigner": "^3.895.0",
+    "multer": "^1.4.5-lts.1",
+    "unzipper": "^0.11.4"
   },
   "devDependencies": {
     "@babel/core": "^7.24.3",
