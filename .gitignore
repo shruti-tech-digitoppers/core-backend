@@ -4,6 +4,7 @@ src/config/
 pnpm-lock.yaml
 .DS_Store
 .vscode
+storage/*
 # .env.local
 # .env.development.local
 # .env.test.local
