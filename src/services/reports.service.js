@@ -64,19 +64,14 @@ export const processReports = async (reports, license) => {
     let storedReports = [];
     if (validReports.length > 0) {
       try {
-        console.log(`[DEBUG] Attempting to insert ${validReports.length} valid reports`);
-        console.log(`[DEBUG] Sample report structure:`, JSON.stringify(validReports[0], null, 2));
-        
         const rawResult = await Reports.insertMany(validReports, {
           ordered: false, // Continue processing even if some documents fail
           rawResult: true // Return the raw MongoDB driver result so we can inspect writeErrors
         });
         
-        console.log(`[DEBUG] insertMany raw result:`);
         console.dir(rawResult, { depth: null });
 
         const insertedCount = rawResult.insertedCount || rawResult.nInserted || 0;
-        console.log(`[DEBUG] Inserted ${insertedCount} / ${validReports.length} documents`);
 
         if (insertedCount > 0) {
           const insertedIds = Object.values(rawResult.insertedIds || {});

@@ -1,9 +1,20 @@
-import { UpdateEvent } from "../../models/mongo.model.js";
+import { UpdateEvent, Rollout } from "../../models/mongo.model.js";
 
 export const updatesMetrics = async (req, res) => {
   try {
-    const { licenseId } = req.query;
-    const match = licenseId ? { licenseId } : {};
+    const { rolloutId } = req.query;
+
+    if(!rolloutId) {
+      return res.status(400).json({ message: "Missing required query params" });
+    }
+
+    // fetch bundleId from Rollout collection
+    const rollout = await Rollout.findOne({ _id: rolloutId }, { bundleId: 1 }).lean();
+    if(!rollout || !rollout.bundleId) {
+      return res.status(404).json({ message: "Rollout not found" });
+    }
+
+    const match = { bundleId: rollout.bundleId };
     const pipeline = [
       { $match: match },
       { $group: {

@@ -7,7 +7,7 @@ import { parseBundleZip } from "../../services/updates.service.js";
 export const initiateUpload = async (req, res) => {
   try {
     const { type, key } = req.body; // type: app|content|combined, key: storage key (for s3/local)
-    if (!type || !["app","content","combined"].includes(type)) {
+    if (!type || !["app", "content", "combined"].includes(type)) {
       return res.status(400).json({ message: "Invalid type" });
     }
     const storageKey = key || `bundles/${Date.now()}-${Math.random().toString(36).slice(2)}.zip`;
@@ -30,7 +30,7 @@ export const finalizeBundle = async (req, res) => {
     // If already ingested via local upload, avoid re-parsing and just mark finalized
     if (bundle.ingestedAt && bundle.sizeBytes && bundle.sha256 && bundle.version) {
       await UpdateBundle.updateOne({ _id: id }, { $set: { finalizedAt: new Date() } });
-      return res.json({ id, sizeBytes: bundle.sizeBytes, sha256: bundle.sha256, version: bundle.version, filesCount: (bundle.files||[]).length });
+      return res.json({ id, sizeBytes: bundle.sizeBytes, sha256: bundle.sha256, version: bundle.version, filesCount: (bundle.files || []).length });
     }
 
     const meta = await parseBundleZip(bundle.storage);

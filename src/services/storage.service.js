@@ -8,6 +8,27 @@ let S3_BUCKET = process.env.S3_BUCKET;
 let STORAGE_DRIVER = process.env.STORAGE_DRIVER || "local";
 let LOCAL_BUNDLES_DIR = process.env.LOCAL_BUNDLES_DIR || "storage";
 
+// Canonical key utilities
+const toPosix = (p) => String(p || "").split(path.sep).join(path.posix.sep);
+
+const normalizeStorageKey = (key) => {
+	let k = toPosix(key);
+	k = k.replace(/^\/+/, "");
+	const localPrefix = toPosix(`${LOCAL_BUNDLES_DIR}/`);
+	if (k.startsWith(localPrefix)) k = k.slice(localPrefix.length);
+	if (k.startsWith("storage/")) k = k.slice("storage/".length);
+	return k;
+};
+
+const resolveLocalPath = (keyOrPath) => {
+	if (!keyOrPath) return keyOrPath;
+	if (path.isAbsolute(keyOrPath)) return keyOrPath;
+	if (keyOrPath.startsWith(`${LOCAL_BUNDLES_DIR}${path.sep}`) || keyOrPath.startsWith(`${LOCAL_BUNDLES_DIR}/`)) {
+		return keyOrPath;
+	}
+	return path.join(LOCAL_BUNDLES_DIR, normalizeStorageKey(keyOrPath));
+};
+
 const ensureLocalDir = () => {
 	if (STORAGE_DRIVER === "local") {
 		fs.mkdirSync(LOCAL_BUNDLES_DIR, { recursive: true });
@@ -26,25 +47,26 @@ export const configureStorage = async () => {
 };
 
 export const getPresignedPutUrl = async (key, contentType = "application/zip", expiresSeconds = 900) => {
+	const relKey = normalizeStorageKey(key);
 	if (STORAGE_DRIVER !== "s3") {
-		const filePath = path.join(LOCAL_BUNDLES_DIR, key);
+		const filePath = resolveLocalPath(relKey);
 		return { driver: "local", filePath };
 	}
 	const { PutObjectCommand } = await import("@aws-sdk/client-s3");
 	const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
-	const command = new PutObjectCommand({ Bucket: S3_BUCKET, Key: key, ContentType: contentType });
+	const command = new PutObjectCommand({ Bucket: S3_BUCKET, Key: relKey, ContentType: contentType });
 	const url = await getSignedUrl(s3Client, command, { expiresIn: expiresSeconds });
 	return { driver: "s3", url };
 };
 
 export const getPresignedGetUrl = async (key, expiresSeconds = 900) => {
 	if (STORAGE_DRIVER !== "s3") {
-		const filePath = path.join(LOCAL_BUNDLES_DIR, key);
+		const filePath = resolveLocalPath(key);
 		return { driver: "local", filePath };
 	}
 	const { GetObjectCommand } = await import("@aws-sdk/client-s3");
 	const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
-	const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: key });
+	const command = new GetObjectCommand({ Bucket: S3_BUCKET, Key: normalizeStorageKey(key) });
 	const url = await getSignedUrl(s3Client, command, { expiresIn: expiresSeconds });
 	return { driver: "s3", url };
 };
@@ -87,8 +109,8 @@ export const computeFileSha256 = (filePath) => new Promise((resolve, reject) => 
 });
 
 export const getStorageLocator = (keyOrPath) => {
-	if (STORAGE_DRIVER === "s3") return { s3Key: keyOrPath };
-	return { filePath: path.isAbsolute(keyOrPath) ? keyOrPath : path.join(LOCAL_BUNDLES_DIR, keyOrPath) };
+	if (STORAGE_DRIVER === "s3") return { s3Key: normalizeStorageKey(keyOrPath) };
+	return { filePath: resolveLocalPath(keyOrPath) };
 };
 
 export const getLocalBundlesDir = () => LOCAL_BUNDLES_DIR;
@@ -96,7 +118,7 @@ export const getLocalBundlesDir = () => LOCAL_BUNDLES_DIR;
 export const openStorageReadStream = async (storageOrPath) => {
 	// Accepts either a storage locator { s3Key | filePath } or a direct path/key string
 	const storage = typeof storageOrPath === "string"
-		? (STORAGE_DRIVER === "s3" ? { s3Key: storageOrPath } : { filePath: path.isAbsolute(storageOrPath) ? storageOrPath : path.join(LOCAL_BUNDLES_DIR, storageOrPath) })
+		? (STORAGE_DRIVER === "s3" ? { s3Key: normalizeStorageKey(storageOrPath) } : { filePath: resolveLocalPath(storageOrPath) })
 		: storageOrPath || {};
 
 	if (storage.s3Key) {

@@ -1,4 +1,4 @@
-import { Device, Rollout, UpdateBundle, UpdateEvent } from "../models/mongo.model.js";
+import { Device, License, Rollout, UpdateBundle, UpdateEvent } from "../models/mongo.model.js";
 import { buildBundleResponse, resolvePendingBundles, verifyDownloadToken } from "../services/updates.service.js";
 import { streamLocalFileWithRange, getPresignedGetUrl } from "../services/storage.service.js";
 
@@ -11,7 +11,7 @@ export const checkForUpdates = async (req, res) => {
       return res.status(400).json({ message: "Missing required query params" });
     }
 
-    if (String(license._id) !== String(license_id)) {
+    if (String(license.licenseKey) !== String(license_id)) {
       return res.status(403).json({ message: "License mismatch" });
     }
 
@@ -83,7 +83,10 @@ export const proxyDownload = async (req, res) => {
     const bundle = await UpdateBundle.findById(req.params.bundleId).lean();
     if (!bundle) return res.status(404).end();
     if (String(payload.bundleId) !== String(bundle._id)) return res.status(403).end();
-    if (String(payload.licenseId) !== String(req.query.license_id || '')) return res.status(403).end();
+    const license = await License.findById(payload.licenseId).lean();
+    if(!license) return res.status(404).end();
+    const licenseKey = license.licenseKey;
+    if (String(licenseKey) !== String(req.query.license_id || '')) return res.status(403).end();
     const keyOrPath = bundle.storage?.s3Key || bundle.storage?.filePath;
     const presigned = await getPresignedGetUrl(keyOrPath, 300);
     if (presigned.url) {
@@ -94,5 +97,3 @@ export const proxyDownload = async (req, res) => {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
-
-

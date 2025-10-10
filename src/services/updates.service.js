@@ -87,7 +87,7 @@ export const buildBundleResponse = async (bundle, licenseId, deviceId) => {
     metadata,
     sizeBytes: bundle.sizeBytes,
     sha256: bundle.sha256,
-    downloadUrl: presigned.url || `/api/updates/download/${bundle._id}?token=${token}`
+    downloadUrl: presigned.url || `${process.env.BASE_URL_FORWARDED}/api/updates/download/${bundle._id}?token=${token}`
   };
 };
 
