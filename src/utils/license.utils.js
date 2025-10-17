@@ -1,6 +1,7 @@
 import { License } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
-export const checkLicenseStatus = async (licenseKey) => {
+
+export const checkLicenseStatus = async (licenseKey, deviceId) => {
   const license = await License.findOne({ licenseKey });
 
   // check if license key is valid
@@ -24,6 +25,16 @@ export const checkLicenseStatus = async (licenseKey) => {
 
   // check if license is expired
   if (license.isRegistered) {
+    // check if license is registered to the device
+    if (license.registeredTo !== deviceId) {
+      return {
+        licenseObj: license,
+        isActive: false,
+        errorCode: ERROR_CODES.UNAUTHORIZED,
+        message: 'License is not registered to this device',
+      };
+    }
+
     const isExpired = license.licenseDays * 24 * 60 * 60 * 1000 < Date.now() - +new Date(license.registeredAt);
     if (isExpired) {
       return {

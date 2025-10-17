@@ -14,7 +14,7 @@ export const funActivateLicense = async (req, res) => {
 
   let licenseStatus;
   try {
-    licenseStatus = await checkLicenseStatus(licenseKey);
+    licenseStatus = await checkLicenseStatus(licenseKey, deviceId);
     if (!licenseStatus.isActive) {
       return res.status(400).json({ message: licenseStatus.message, errorCode: licenseStatus.errorCode });
     }
@@ -23,17 +23,6 @@ export const funActivateLicense = async (req, res) => {
   }
   
   const license = licenseStatus.licenseObj;
-
-  // check if license is registered to another device
-  if (license.isRegistered) {
-    if (license.registeredTo !== deviceId)
-      return res.status(400).json({ message: 'License is already registered to another device', errorCode: ERROR_CODES.NOT_ACCEPTABLE });
-
-    // check if license is expired
-    if (license.licenseDays * 24 * 60 * 60 * 1000 < Date.now() - +new Date(license.registeredAt)) {
-      return res.status(400).json({ message: 'License is expired', errorCode: ERROR_CODES.NOT_ACCEPTABLE });
-    }
-  }
 
   // Generate security parameters
   const signingKey = generateSigningKey();
@@ -45,7 +34,7 @@ export const funActivateLicense = async (req, res) => {
     signingKey,
     deviceFingerprint,
     offlineToken,
-    validUntil: new Date(Date.now() + (license.licenseDays * 24 * 60 * 60 * 1000)),
+    validUntil: new Date(new Date(license.registeredAt).getTime() + (license.licenseDays * 24 * 60 * 60 * 1000)),
     lastSyncTimestamp: Date.now(),
     securityVersion: '1.0'
   };
@@ -110,6 +99,38 @@ export const funDeactivateLicense = async (req, res) => {
 //  return res.status(200).json({ message: 'Licenses added', data: licenses });
 //};
 
+// validate the license
+export const validateLicense = async (req, res) => {
+  const { licenseKey, deviceId } = req.body;
+  let licenseStatus 
+  
+  try {
+    licenseStatus = await checkLicenseStatus(licenseKey, deviceId);
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Error checking license status',
+      error: error.message,
+      errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR
+    });
+  }
+
+  if (!licenseStatus) {
+    return res.status(404).json({
+      message: 'License not found',
+      errorCode: ERROR_CODES.DATA_NOT_FOUND
+    });
+  }
+
+  if (!licenseStatus.isActive) {
+    return res.status(401).json({
+      message: licenseStatus.message,
+      errorCode: licenseStatus.errorCode
+    });
+  }
+
+  return res.status(200).json(licenseStatus);
+};
+
 export const funGetSecurityParams = async (req, res) => {
   const { licenseKey, deviceId } = req.body;
 
@@ -139,7 +160,7 @@ export const funGetSecurityParams = async (req, res) => {
     }
 
     // Check license status
-    const licenseStatus = await checkLicenseStatus(licenseKey);
+    const licenseStatus = await checkLicenseStatus(licenseKey, deviceId);
     if (!licenseStatus.isActive) {
       return res.status(401).json({
         message: licenseStatus.message,
@@ -169,7 +190,7 @@ export const funGetSecurityParams = async (req, res) => {
       signingKey,
       deviceFingerprint,
       offlineToken,
-      validUntil: new Date(Date.now() + (license.licenseDays * 24 * 60 * 60 * 1000)),
+      validUntil: new Date(new Date(license.registeredAt) + (license.licenseDays * 24 * 60 * 60 * 1000)),
       lastSyncTimestamp: Date.now(),
       securityVersion: '1.0'
     };
@@ -194,5 +215,20 @@ export const funGetSecurityParams = async (req, res) => {
       error: error.message,
       errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR
     });
+  }
+};
+
+export const getLicenses = async (req, res) => {
+  const { schoolId } = req.params;
+  try {
+    const school = await School.findOne({ schoolId }).lean();
+    const licenses = await License.find({ schoolId: school._id }).lean();
+    if (licenses.length === 0) {
+      res.json({ message: 'No licenses found', licenses: [] });
+    } else {
+      res.json({ message: 'Licenses fetched', licenses });
+    }
+  } catch (error) {
+    res.status(500).json({ errorCode: ERROR_CODES.SERVER_ERROR, message: error.message || 'Error fetching licenses', error });
   }
 };

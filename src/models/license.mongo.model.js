@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 export default new mongoose.Schema(
   {
-    licenseKey: { type: String, required: true }, // format: lic{partOfSchId}1, lic{partOfSchId}2
+    licenseKey: { type: String, required: true, unique: true, index: true }, // format: lic{partOfSchId}1, lic{partOfSchId}2
     //status: { type: String, required: true, enum: ['active', 'registered', 'renewed', 'expired'] },
     isRegistered: { type: Boolean, default: false },
     registeredAt: { type: Date, default: null },

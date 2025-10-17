@@ -12,9 +12,7 @@ export const API_MESSAGES = {
   
   export const ERROR_CODES = {
 	BAD_REQUEST: 'code/bad-request',
-	OTP_EXPIRED: 'auth/otp-expired',
 	AUTH_TOKEN_EXPIRED: 'auth/token-expired',
-	USER_DISABLED: 'auth/user-disabled',
 	UNVERIFIED: 'auth/not-verified',
 	UNAUTHORIZED: 'auth/unauthorized',
 	FORBIDDEN: 'auth/forbidden',
@@ -25,14 +23,13 @@ export const API_MESSAGES = {
 	DATA_NOT_FOUND: 'db/data-not-found',
 	INVALID: 'code/invalid',
 	ALREADY_USED: 'code/already-used',
-	WORNG: 'code/wrong-coupon-code',
 	UNPROCESSABLE: 'auth/unprocessable',
 	AUTH_TOKEN_UNAVAILABLE: 'code/token-unavailable',
 	PG_ERROR: 'pg/payment-gateway-error',
 	PG_INVALID_PAYMENT: 'pg/invalid-payment-info',
 	INVALID_ARGUMENT: 'code/invalid-argument',
 	UNKNOWN_ERROR: 'code/unknown-error',
-	ACCOUNT_ALREADY_EXISTS: 'auth/account_already_exists',	
+	ACCOUNT_ALREADY_EXISTS: 'auth/account_already_exists',
   };
 
 //  export const VALIDATION_ERROR = 'code/validation-error';
