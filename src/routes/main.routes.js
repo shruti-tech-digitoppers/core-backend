@@ -17,7 +17,7 @@ router.use(adminRoutes);
 router.use('/api/reports', reportsRoutes);
 
 // return 200 with Date header
-router.head('api/health', (req, res) => {
+router.head('/api/health', (req, res) => {
   res.setHeader('Date', new Date().toISOString());
   return res.status(200).send({ message: 'OK' });
 });

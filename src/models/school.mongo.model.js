@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 export default new mongoose.Schema(
   {
+    orgId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
     schoolId: { type: String, required: true },
     name: { type: String, required: true },
     email: { type: String, required: true },
