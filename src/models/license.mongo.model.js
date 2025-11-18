@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 export default new mongoose.Schema(
   {
+    orgId: { type: mongoose.Schema.Types.ObjectId, ref: 'Organization', required: true },
     licenseKey: { type: String, required: true, unique: true, index: true }, // format: lic{partOfSchId}1, lic{partOfSchId}2
     //status: { type: String, required: true, enum: ['active', 'registered', 'renewed', 'expired'] },
     isRegistered: { type: Boolean, default: false },

@@ -3,6 +3,7 @@ import studentSchema from "./student.mongo.model.js";
 import licenseSchema from "./license.mongo.model.js";
 import reportsSchema from "./reports.mongo.model.js";
 import schoolSchema from "./school.mongo.model.js";
+import projectSchema from "./project.mongo.model.js";
 import deviceSchema from "./device.mongo.model.js";
 import updateBundleSchema from "./updateBundle.mongo.model.js";
 import rolloutSchema from "./rollout.mongo.model.js";

@@ -77,7 +77,7 @@ export const authMiddleware = async (req, res, next) => {
   }
 
   // Check license status
-  const licenseStatus = await checkLicenseStatus(license.licenseKey);
+  const licenseStatus = await checkLicenseStatus(license.licenseKey, deviceId);
   if (!licenseStatus.isActive) {
     return res.status(401).json({ 
       message: licenseStatus.message, 

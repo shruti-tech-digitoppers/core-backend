@@ -74,6 +74,7 @@ const reportsSchema = new mongoose.Schema(
       id: { type: String }, // deviceId
     },
     metadata: {
+      orgId: { type: String },
       schoolId: { type: String, required: true },
       licenseKey: { type: String, required: true },
       projectId: { type: String, required: true },
@@ -87,46 +88,12 @@ const reportsSchema = new mongoose.Schema(
 // Ensure unique index on reportId
 reportsSchema.index({ reportId: 1 }, { unique: true });
 
+// Indexes for performant aggregations and queries
+reportsSchema.index({ 'metadata.orgId': 1, timestamp: 1 });
+reportsSchema.index({ 'metadata.schoolId': 1, timestamp: 1 });
+// reportsSchema.index({ subjectId: 1 });
+// reportsSchema.index({ categoryId: 1 });
+// reportsSchema.index({ subcategoryId: 1 });
+reportsSchema.index({ 'deviceInfo.id': 1 });
+
 export default reportsSchema;
-
-
-// -------------------------------------------
-
-
-// {
-//   "chapterId": String, // chapterId will be fetched and used from the selected local chapters json file. It is also a part of the class 'ContentItem'
-//   "chapterName": String,  // chapterName will be fetched and used from the selected local chapters json file
-//   "subjectId": String,
-//   "userId": String, // userId will be a unique identifier formed with a combination of name, class and rollnumber (or mobile number if the user is a teacher) separated by '_d1g1_'
-//   "userName": String,
-// ! missing "accessedAt": Date, // this is the date when the user accessed the content
-//   "timestamp": String, // timestamp in ISO format YYYY-MM-DDTHH:MM:SS.SSSZ
-//   "languageId": String,
-//   "boardId": String,
-//   "classId": String,
-//   "sessionId": String, // licenseKey_d1g1_userId_d1g1_timestamp // '_d1g1_' is a delimiter
-//   "categoryId": String, // curricular_content, activity_content, games, etc.
-//   "subcategoryId": String, // This is the same subcategoryId which is a part of class 'ContentItem'
-//   "contentId": String,  // contentId will be fetched and used from the selected local content json file
-//   "contentName": String, // contentName will be fetched and used from the selected local content json file
-// ** new   "resourceType": String, // this is the same resourceType which is part of the class 'ContentItem'
-//   "metrics": {
-//       "duration": Number, // milliseconds, // applicable for all types
-//       "totalQuestions": Number, // applicable only resourceType = 'questions'
-//       "totalQuestionsAttempted": Number, // applicable only resourceType = 'questions'
-//       "correctAnswers": Number, // applicable only resourceType = 'questions'
-//       "totalDuration": Number, // applicable only resourceType = 'video' or 'audio'
-//       "pagesViewed": Number, // applicable only resourceType = 'book'
-//       "totalPages": Number, // applicable only resourceType = 'book'
-//   },
-//   "deviceInfo": {
-//       "id": String, // deviceId
-//       "type": String, // mobile, tablet, ifp, tv, etc.
-//       "os": String // android, ios, windows, etc.
-//   },
-//   "metadata": {
-//       "schoolId": String,
-//       "licenseKey": String,
-//       "projectId": String
-//   }
-// }

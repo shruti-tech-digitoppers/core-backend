@@ -33,6 +33,7 @@ export const processReports = async (reports, license) => {
         id: license.registeredTo, // Schema expects 'id', not 'deviceId'
       },
       metadata: {
+        orgId: license.orgId,
         schoolId: license.schoolId,
         licenseKey: license.licenseKey,
         projectId: license.projectId,
@@ -68,8 +69,6 @@ export const processReports = async (reports, license) => {
           ordered: false, // Continue processing even if some documents fail
           rawResult: true // Return the raw MongoDB driver result so we can inspect writeErrors
         });
-        
-        console.dir(rawResult, { depth: null });
 
         const insertedCount = rawResult.insertedCount || rawResult.nInserted || 0;
 
