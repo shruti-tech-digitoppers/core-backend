@@ -11,6 +11,15 @@ export default new mongoose.Schema({
       message: (props) => `${props.value} is not a valid name!`,
     },
   },
+  schoolId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: true,
+    ref: "School",
+  },
+  projectId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Project",
+  },
   email: {
     type: String,
     validate: {
@@ -22,6 +31,11 @@ export default new mongoose.Schema({
   },
   password: {
     type: String,
+  },
+  type: {
+    type: String,
+    enum: ['student', 'teacher'],
+    default: 'student',
   },
   roll_number: {
     type: String,
@@ -42,19 +56,13 @@ export default new mongoose.Schema({
     },
   },
   gradeId: {
-    type: mongoose.Schema.Types.ObjectId,
-    required: true,
-    ref: "Grade",
+    type: String,
   },
   boardId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Board",
-    required: true,
+    type: String,
   },
   languageId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Language",
-    required: true,
+    type: String,
   },
   address: {
     type: String,

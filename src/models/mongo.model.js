@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import studentSchema from "./student.mongo.model.js";
+import appUserSchema from "./app-user.mongo.model.js";
 import licenseSchema from "./license.mongo.model.js";
 import reportsSchema from "./reports.mongo.model.js";
 import schoolSchema from "./school.mongo.model.js";
@@ -10,7 +10,7 @@ import rolloutSchema from "./rollout.mongo.model.js";
 import updateEventSchema from "./updateEvent.mongo.model.js";
 import organizationSchema from "./organization.mongo.model.js";
 
-const Student = mongoose.model("Student", studentSchema);
+const AppUser = mongoose.model("AppUser", appUserSchema);
 const License = mongoose.model("License", licenseSchema);
 const Reports = mongoose.model("Reports", reportsSchema);
 const Project = mongoose.model("Project", projectSchema);
@@ -26,4 +26,4 @@ Reports.init().catch(err => {
   console.error("Reports index creation failed", err);
 });
 
-export { Student, License, Reports, School, Device, UpdateBundle, Rollout, UpdateEvent, Organization, Project };
+export { AppUser, License, Reports, School, Device, UpdateBundle, Rollout, UpdateEvent, Organization, Project };
