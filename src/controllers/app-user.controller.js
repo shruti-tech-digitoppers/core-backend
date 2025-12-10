@@ -28,7 +28,7 @@ export const storeBulkAppUsers = async (req, res) => {
         !mapped.gradeId ||
         !mapped.boardId ||
         !mapped.languageId ||
-        !mapped.roll_number
+        !(mapped.roll_number || mapped.phone_number)
       ) {
         return res.status(400).json({
           message: "Missing required fields in profile",
