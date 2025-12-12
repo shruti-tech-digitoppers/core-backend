@@ -22,7 +22,7 @@ app.use(express.json());
 
 // CORS configuration to allow dashboard origin and handle preflight
 const corsOptions = {
-    origin: ['http://localhost:4400'],
+    origin: ['http://localhost:4400', 'https://dashboard.digitoppers.in'],
     credentials: true,
     methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
     allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
