@@ -74,11 +74,15 @@ export const buildBundleResponse = async (bundle, licenseId, deviceId) => {
     metadata.versionName = bundle.version?.app?.versionName;
     metadata.versionCode = bundle.version?.app?.versionCode;
     metadata.releaseNotes = bundle.version?.app?.releaseNotes;
+    metadata.apkSHA256 = bundle.version?.app?.sha256;
+    metadata.apkSizeBytes = bundle.version?.app?.sizeBytes;
   }
   if (bundle.type === "content" || bundle.type === "combined") {
     metadata.version = bundle.version?.content?.version;
     metadata.baseVersion = bundle.version?.content?.baseVersion;
     metadata.fileCount = (bundle.files || []).length;
+    metadata.apkSHA256 = bundle.version?.content?.sha256;
+    metadata.apkSizeBytes = bundle.version?.content?.sizeBytes;
   }
 
   return {
