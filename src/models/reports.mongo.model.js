@@ -22,6 +22,7 @@ const reportsSchema = new mongoose.Schema(
     boardId: { type: String, required: true }, // 'cbse', 'icse', 'state_board', etc.
     classId: { type: String, required: true },  // , enum: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11_science', '11_arts', '11_commerce', '12_science', '12_arts', '12_commerce']
     sessionId: { type: String, required: true },  // licenseKey_d1g1_userId_d1g1_timestamp; '_d1g1_' is a delimiter
+    section: { type: String, required: true, enum: ['curriculum', 'co_curricular'] },
     categoryId: { type: String, required: true },
     subcategoryId: { type: String, required: true },
     contentId: { type: String, required: true },
