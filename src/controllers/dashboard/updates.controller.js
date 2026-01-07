@@ -85,10 +85,35 @@ export const updateRolloutStatus = async (req, res) => {
   }
 };
 
+// export const listRollouts = async (_req, res) => {
+//   try {
+//     const rollouts = await Rollout.find({}).sort({ createdAt: -1 }).lean();
+//     return res.json({ rollouts });
+//   } catch (e) {
+//     return res.status(500).json({ message: "Failed to list rollouts", error: e.message });
+//   }
+// };
+
 export const listRollouts = async (_req, res) => {
   try {
-    const rollouts = await Rollout.find({}).sort({ createdAt: -1 }).lean();
-    return res.json({ rollouts });
+    const rollouts = await Rollout.find({})
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "bundleId",
+        select: "type version notes finalizedAt ingestedAt sizeBytes sha256",
+      })
+      .populate({
+        path: "targetLicenses",
+        select: "licenseKey platform isRegistered registeredAt registeredTo",
+      })
+      .lean();
+
+    const normalized = (rollouts || []).map((r) => ({
+      ...r,
+      targetLicensesCount: Array.isArray(r.targetLicenses) ? r.targetLicenses.length : 0,
+    }));
+
+    return res.json({ rollouts: normalized });
   } catch (e) {
     return res.status(500).json({ message: "Failed to list rollouts", error: e.message });
   }
