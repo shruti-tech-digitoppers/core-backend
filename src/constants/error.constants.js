@@ -19,7 +19,7 @@ export const API_MESSAGES = {
 	AUTH_USER_NOT_FOUND: 'auth/user-not-found',
 	MISSING_PARAMS: 'code/missing-params',
 	NOT_ACCEPTABLE: 'code/not-acceptable',
-	SERVER_ERROR: 'code/internal-server-error',
+	SERVER_ERROR: 'code/server-error',
 	DATA_NOT_FOUND: 'db/data-not-found',
 	INVALID: 'code/invalid',
 	ALREADY_USED: 'code/already-used',

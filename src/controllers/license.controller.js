@@ -19,7 +19,7 @@ export const funActivateLicense = async (req, res) => {
       return res.status(400).json({ message: licenseStatus.message, errorCode: licenseStatus.errorCode });
     }
   } catch (error) {
-    return res.status(500).json({ message: 'Error checking license status', error: error.message, errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR });
+    return res.status(500).json({ message: 'Error checking license status', error: error.message, errorCode: ERROR_CODES.SERVER_ERROR });
   }
   
   const license = licenseStatus.licenseObj;
@@ -56,7 +56,7 @@ export const funActivateLicense = async (req, res) => {
   try {
     await license.save();
   } catch (error) {
-    return res.status(500).json({ message: 'Error activating license', error: error.message, errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR });
+    return res.status(500).json({ message: 'Error activating license', error: error.message, errorCode: ERROR_CODES.SERVER_ERROR });
   }
 
   // fetch school details
@@ -75,7 +75,6 @@ export const funActivateLicense = async (req, res) => {
       },
       securityParams: {
         apiKey: license.apiKey,
-        passphrase: license.passphrase,
         deviceFingerprint,
         offlineToken,
         signingKey
@@ -110,7 +109,7 @@ export const validateLicense = async (req, res) => {
     return res.status(500).json({
       message: 'Error checking license status',
       error: error.message,
-      errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR
+      errorCode: ERROR_CODES.SERVER_ERROR
     });
   }
 
@@ -213,7 +212,32 @@ export const funGetSecurityParams = async (req, res) => {
     return res.status(500).json({
       message: 'Error retrieving security parameters',
       error: error.message,
-      errorCode: ERROR_CODES.INTERNAL_SERVER_ERROR
+      errorCode: ERROR_CODES.SERVER_ERROR
+    });
+  }
+};
+
+export const funGetPassphrase = async (req, res) => {
+  try {
+    const license = req.license;
+    if (!license) {
+      return res.status(401).json({
+        message: 'Unauthorized',
+        errorCode: ERROR_CODES.UNAUTHORIZED
+      });
+    }
+
+    return res.status(200).json({
+      message: 'Passphrase retrieved successfully',
+      data: {
+        passphrase: license.passphrase
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Error retrieving passphrase',
+      error: error.message,
+      errorCode: ERROR_CODES.SERVER_ERROR
     });
   }
 };
