@@ -11,6 +11,14 @@ export default new mongoose.Schema({
       message: (props) => `${props.value} is not a valid name!`,
     },
   },
+  userId: {
+    type: String,
+    required: true
+  },
+  licenseKeys: {
+    type: [String],
+    default: [],
+  },
   schoolId: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,

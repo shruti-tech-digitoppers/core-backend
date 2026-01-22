@@ -23,6 +23,7 @@ export const storeBulkAppUsers = async (req, res) => {
       // minimal required fields to store
       if (
         !mapped.name ||
+        !mapped.userId ||
         !mapped.type ||
         !['student', 'teacher'].includes(mapped.type) ||
         !mapped.gradeId ||
@@ -40,6 +41,7 @@ export const storeBulkAppUsers = async (req, res) => {
 
       const update = {
         $set: mapped,
+        $addToSet: { licenseKeys: license.licenseKey },
       };
 
       // only set createdAt on insert; timestamps will handle the rest
@@ -80,6 +82,7 @@ export const storeBulkAppUsers = async (req, res) => {
 function mapProfileToAppUser(p) {
   return {
     name: p?.name,
+    userId: p?.id,
     type: p?.userType,
     roll_number: p?.rollNumber,
     phone_number: p?.mobileNumber,
@@ -91,11 +94,21 @@ function mapProfileToAppUser(p) {
 }
 
 function buildFilter(mapped) {
-  const filter = {
-    type: mapped.type,
-    roll_number: mapped.roll_number,
-    gradeId: mapped.gradeId,
-  };
+  // Prefer a stable unique id from the app to avoid duplicates across syncs.
+  // Include schoolId/projectId scope since this is a multi-tenant backend.
+  if (mapped.userId) {
+    const filter = {
+      schoolId: mapped.schoolId,
+      projectId: mapped.projectId,
+      userId: mapped.userId,
+    };
+    return filter;
+  }
+
+  // Fallback (older clients): attempt to match on class + roll/mobile + type (+ board/language).
+  const filter = { schoolId: mapped.schoolId, projectId: mapped.projectId, type: mapped.type, gradeId: mapped.gradeId };
+  if (mapped.roll_number) filter.roll_number = mapped.roll_number;
+  if (mapped.phone_number) filter.phone_number = mapped.phone_number;
   if (mapped.boardId) filter.boardId = mapped.boardId;
   if (mapped.languageId) filter.languageId = mapped.languageId;
   return filter;
