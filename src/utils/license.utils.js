@@ -1,7 +1,17 @@
 import { License } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
 
-export const checkLicenseStatus = async (licenseKey, deviceId) => {
+/**
+ * Shared license-state guard used by regular validation and migration flows.
+ * Device binding can be optionally skipped for controlled flows that must
+ * apply custom ownership checks (e.g., oldDeviceId/newDeviceId migration).
+ * @param {string} licenseKey
+ * @param {string | null} deviceId
+ * @param {{ skipDeviceBindingCheck?: boolean }} [options]
+ * @returns {Promise<{licenseObj: any, isActive: boolean, errorCode: string | null, message: string}>}
+ */
+export const checkLicenseStatus = async (licenseKey, deviceId, options = {}) => {
+  const { skipDeviceBindingCheck = false } = options;
   const license = await License.findOne({ licenseKey });
 
   // check if license key is valid
@@ -26,7 +36,7 @@ export const checkLicenseStatus = async (licenseKey, deviceId) => {
   // check if license is expired
   if (license.isRegistered) {
     // check if license is registered to the device
-    if (license.registeredTo !== deviceId) {
+    if (!skipDeviceBindingCheck && license.registeredTo !== deviceId) {
       return {
         licenseObj: license,
         isActive: false,

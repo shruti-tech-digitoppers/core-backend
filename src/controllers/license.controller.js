@@ -260,3 +260,149 @@ export const getLicenses = async (req, res) => {
     res.status(500).json({ errorCode: ERROR_CODES.SERVER_ERROR, message: error.message || 'Error fetching licenses', error });
   }
 };
+
+/**
+ This controller exists to migrate legacy Android device bindings created by older app versions that used Build.ID (AND_*), which can be identical across many IFP devices and break one-license-per-device enforcement; it safely rebinds an already-registered license from oldDeviceId to a new unique ANDV2_* ID only when ownership checks pass (licenseKey + current registeredTo match), is idempotent for retries, and rotates/returns security parameters so client signatures remain consistent after migration.
+ */
+export const funMigrateDeviceId = async (req, res) => {
+  const { licenseKey, oldDeviceId, newDeviceId } = req.body;
+
+  if (!licenseKey || !oldDeviceId || !newDeviceId) {
+    return res.status(400).json({
+      success: false,
+      message: 'licenseKey, oldDeviceId and newDeviceId are required',
+      errorCode: ERROR_CODES.BAD_REQUEST,
+    });
+  }
+
+  if (oldDeviceId === newDeviceId) {
+    return res.status(200).json({
+      success: true,
+      message: 'Already migrated',
+      data: { migrated: false },
+    });
+  }
+
+  try {
+    const licenseStatus = await checkLicenseStatus(licenseKey, null, {
+      // Migration must enforce its own old/new binding rules; do not bypass
+      // frozen/expired/not-found checks, only defer device ownership checks.
+      skipDeviceBindingCheck: true,
+    });
+
+    if (!licenseStatus.licenseObj) {
+      return res.status(404).json({
+        success: false,
+        message: licenseStatus.message,
+        errorCode: licenseStatus.errorCode,
+      });
+    }
+
+    const license = licenseStatus.licenseObj;
+
+    if (!license.isRegistered) {
+      return res.status(409).json({
+        success: false,
+        message: 'License is not registered yet. Use activation endpoint.',
+        errorCode: ERROR_CODES.CONFLICT,
+      });
+    }
+
+    if (!licenseStatus.isActive) {
+      return res.status(licenseStatus.errorCode === ERROR_CODES.NOT_ACCEPTABLE ? 406 : 401).json({
+        success: false,
+        message: licenseStatus.message,
+        errorCode: licenseStatus.errorCode,
+      });
+    }
+
+    // Idempotent success if already moved.
+    if (license.registeredTo === newDeviceId) {
+      const signingKey = generateSigningKey();
+      const deviceFingerprint = generateDeviceFingerprint(newDeviceId);
+      const offlineToken = generateOfflineToken(licenseKey);
+
+      const securityParams = {
+        signingKey,
+        deviceFingerprint,
+        offlineToken,
+        validUntil: new Date(
+          new Date(license.registeredAt).getTime() +
+          license.licenseDays * 24 * 60 * 60 * 1000
+        ),
+        lastSyncTimestamp: Date.now(),
+        securityVersion: '1.0',
+      };
+
+      license.securityParams = encrypt(securityParams, licenseKey);
+      await license.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Already migrated',
+        data: {
+          migrated: false,
+          securityParams: {
+            apiKey: license.apiKey,
+            deviceFingerprint,
+            offlineToken,
+            signingKey,
+          },
+        },
+      });
+    }
+
+    if (license.registeredTo !== oldDeviceId) {
+      return res.status(401).json({
+        success: false,
+        message: 'License is not registered to oldDeviceId',
+        errorCode: ERROR_CODES.UNAUTHORIZED,
+      });
+    }
+
+    // Migrate binding
+    license.registeredTo = newDeviceId;
+    license.reusedAt = new Date();
+
+    // Rotate security params against new ID
+    const signingKey = generateSigningKey();
+    const deviceFingerprint = generateDeviceFingerprint(newDeviceId);
+    const offlineToken = generateOfflineToken(licenseKey);
+
+    const securityParams = {
+      signingKey,
+      deviceFingerprint,
+      offlineToken,
+      validUntil: new Date(
+        new Date(license.registeredAt).getTime() +
+        license.licenseDays * 24 * 60 * 60 * 1000
+      ),
+      lastSyncTimestamp: Date.now(),
+      securityVersion: '1.0',
+    };
+
+    license.securityParams = encrypt(securityParams, licenseKey);
+    await license.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Device ID migrated successfully',
+      data: {
+        migrated: true,
+        securityParams: {
+          apiKey: license.apiKey,
+          deviceFingerprint,
+          offlineToken,
+          signingKey,
+        },
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error migrating device ID',
+      error: error.message,
+      errorCode: ERROR_CODES.SERVER_ERROR,
+    });
+  }
+};
