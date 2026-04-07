@@ -300,19 +300,19 @@ export const funMigrateDeviceId = async (req, res) => {
 
     const license = licenseStatus.licenseObj;
 
-    if (!license.isRegistered) {
-      return res.status(409).json({
-        success: false,
-        message: 'License is not registered yet. Use activation endpoint.',
-        errorCode: ERROR_CODES.CONFLICT,
-      });
-    }
-
     if (!licenseStatus.isActive) {
       return res.status(licenseStatus.errorCode === ERROR_CODES.NOT_ACCEPTABLE ? 406 : 401).json({
         success: false,
         message: licenseStatus.message,
         errorCode: licenseStatus.errorCode,
+      });
+    }
+
+    if (!license.isRegistered) {
+      return res.status(409).json({
+        success: false,
+        message: 'License is not registered yet. Use activation endpoint.',
+        errorCode: ERROR_CODES.CONFLICT,
       });
     }
 
