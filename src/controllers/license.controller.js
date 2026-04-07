@@ -29,24 +29,28 @@ export const funActivateLicense = async (req, res) => {
   const deviceFingerprint = generateDeviceFingerprint(deviceId);
   const offlineToken = generateOfflineToken(licenseKey);
 
+  // Expiry should start from the current activation moment for new devices,
+  // but should not be extended when the same device reuses the license.
+  const isSameDeviceReuse = license.registeredTo === deviceId;
+  const activationAt = isSameDeviceReuse ? license.registeredAt : new Date();
+  if (isSameDeviceReuse) {
+    license.reusedAt = new Date();
+  } else {
+    license.registeredAt = activationAt;
+  }
+
   // Create security parameters object
   const securityParams = {
     signingKey,
     deviceFingerprint,
     offlineToken,
-    validUntil: new Date(new Date(license.registeredAt).getTime() + (license.licenseDays * 24 * 60 * 60 * 1000)),
+    validUntil: new Date(new Date(activationAt).getTime() + (license.licenseDays * 24 * 60 * 60 * 1000)),
     lastSyncTimestamp: Date.now(),
     securityVersion: '1.0'
   };
 
   // Encrypt security parameters with license key
   const encryptedSecurityParams = encrypt(securityParams, licenseKey);
-
-  if (license.registeredTo == deviceId) {
-    license.reusedAt = new Date();
-  } else {
-    license.registeredAt = new Date();
-  }
 
   // activate license
   license.isRegistered = true;
@@ -189,7 +193,7 @@ export const funGetSecurityParams = async (req, res) => {
       signingKey,
       deviceFingerprint,
       offlineToken,
-      validUntil: new Date(new Date(license.registeredAt) + (license.licenseDays * 24 * 60 * 60 * 1000)),
+      validUntil: new Date(new Date(license.registeredAt || Date.now()).getTime() + (license.licenseDays * 24 * 60 * 60 * 1000)),
       lastSyncTimestamp: Date.now(),
       securityVersion: '1.0'
     };
