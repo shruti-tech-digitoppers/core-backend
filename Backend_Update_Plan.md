@@ -1280,6 +1280,8 @@ Closure notes:
 
 ### Phase 4: Rollout Validation
 
+Status: Closed.
+
 Boundary:
 
 - Admin rollout creation/listing only.
@@ -1305,6 +1307,11 @@ Acceptance criteria:
 Stop/review point:
 
 - Continue only when invalid rollout combinations cannot be created through backend APIs.
+
+Closure notes:
+
+- Rollout creation now validates finalized bundles, target license existence, and bundle/license platform compatibility.
+- Rollouts store the validated bundle platform snapshot, and rollout listing includes populated bundle `platform`.
 
 ### Phase 5: Device Check Resolution And Download Compatibility
 
@@ -1350,6 +1357,8 @@ Closure notes:
 
 ### Phase 6: Event Ingestion And Device State
 
+Status: Closed
+
 Boundary:
 
 - `/api/updates/events`, `UpdateEvent`, and `Device` state updates only.
@@ -1374,6 +1383,13 @@ Acceptance criteria:
 Stop/review point:
 
 - Continue only when event ingestion preserves telemetry and device state remains consistent for app and content updates.
+
+Closure notes:
+
+- Event ingestion now accepts future non-empty event names, trims stored names, and rejects empty event names before insert.
+- `install_success` updates `Device.currentApp` from payload first, then falls back to referenced bundle app metadata for app/combined bundles.
+- Every accepted event updates `Device.lastUpdate` with event status, bundle type/platform when available, timestamp, and failure details; content events still update `currentContentVersion`.
+- Focused Phase 6 tests passed: `pnpm exec mocha --require @babel/register tests/setup.js "tests/utils/update-platform.utils.test.js" "tests/services/updates.service.test.js" "tests/controllers/dashboard/updates.controller.test.js" "tests/controllers/updates.controller.test.js"` (`34 passing`).
 
 ### Phase 7: Migration And Indexes
 

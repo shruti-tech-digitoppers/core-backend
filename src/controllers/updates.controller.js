@@ -3,6 +3,45 @@ import { buildBundleResponse, resolvePendingBundles, verifyDownloadToken } from 
 import { streamLocalFileWithRange, getPresignedGetUrl } from "../services/storage.service.js";
 import { arePlatformsCompatible, normalizeClientPlatform } from "../utils/update-platform.utils.js";
 
+const isNonEmptyString = (value) => typeof value === "string" && value.trim().length > 0;
+
+const eventTimestamp = (value, fallback) => {
+  if (!value) return fallback;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? fallback : parsed;
+};
+
+const appVersionFromPayload = (payload) => {
+  if (!payload || (payload.versionName === undefined && payload.versionCode === undefined)) return undefined;
+  return {
+    versionName: payload.versionName,
+    versionCode: payload.versionCode
+  };
+};
+
+const appVersionFromBundle = (bundle) => {
+  const app = bundle?.version?.app;
+  if (!app || (app.versionName === undefined && app.versionCode === undefined)) return undefined;
+  return {
+    versionName: app.versionName,
+    versionCode: app.versionCode
+  };
+};
+
+const buildLastUpdate = (event, bundle, timestamp) => {
+  const payload = event.payload || {};
+  return {
+    bundleId: event.bundleId,
+    type: bundle?.type,
+    platform: bundle?.platform,
+    status: event.event,
+    event: event.event,
+    updatedAt: timestamp,
+    errorCode: payload.errorCode,
+    errorMessage: payload.errorMessage
+  };
+};
+
 export const checkForUpdates = async (req, res) => {
   try {
     const license = req.license; // set by auth middleware
@@ -47,32 +86,58 @@ export const checkForUpdates = async (req, res) => {
 export const ingestEvents = async (req, res) => {
   try {
     const license = req.license;
-    const deviceId = req.headers['x-device-id'];
+    const deviceId = req.headers["x-device-id"];
     const events = Array.isArray(req.body?.events) ? req.body.events : [];
     if (!events.length) return res.status(400).json({ message: "No events" });
-    const docs = events.map(e => ({
+
+    const normalizedEvents = events.map(e => ({ ...e, event: typeof e?.event === "string" ? e.event.trim() : e?.event }));
+    if (normalizedEvents.some(e => !isNonEmptyString(e.event))) {
+      return res.status(400).json({ message: "Invalid event name" });
+    }
+
+    const bundleIds = [...new Set(normalizedEvents.map(e => e.bundleId).filter(Boolean).map(String))];
+    const bundles = bundleIds.length
+      ? await UpdateBundle.find({ _id: { $in: bundleIds } }).lean()
+      : [];
+    const bundlesById = new Map(bundles.map(bundle => [String(bundle._id), bundle]));
+    const now = new Date();
+    const docs = normalizedEvents.map(e => ({
       licenseId: license._id,
       deviceId,
       bundleId: e.bundleId,
       event: e.event,
       payload: e.payload,
-      createdAt: e.createdAt ? new Date(e.createdAt) : new Date()
+      createdAt: eventTimestamp(e.createdAt, now)
     }));
     await UpdateEvent.insertMany(docs, { ordered: false });
-    // Update device state for key events
-    for (const e of events) {
-      if (e.event === 'install_success' && (e.payload?.versionCode || e.payload?.versionName)) {
-        await Device.updateOne(
-          { deviceId, licenseId: license._id },
-          { $set: { currentApp: { versionName: e.payload?.versionName, versionCode: e.payload?.versionCode } } }
-        );
+
+    const stateEvents = [...normalizedEvents].sort((a, b) => (
+      eventTimestamp(a.createdAt, now).getTime() - eventTimestamp(b.createdAt, now).getTime()
+    ));
+
+    for (const e of stateEvents) {
+      const bundle = e.bundleId ? bundlesById.get(String(e.bundleId)) : undefined;
+      const timestamp = eventTimestamp(e.createdAt, now);
+      const $set = {
+        lastUpdate: buildLastUpdate(e, bundle, timestamp)
+      };
+
+      if (e.event === "install_success") {
+        const appVersion = appVersionFromPayload(e.payload) || appVersionFromBundle(bundle);
+        if (appVersion) {
+          $set.currentApp = appVersion;
+        }
       }
-      if (e.event === 'content_applied' && e.payload?.version) {
-        await Device.updateOne(
-          { deviceId, licenseId: license._id },
-          { $set: { currentContentVersion: e.payload.version } }
-        );
+
+      if (e.event === "content_applied" && e.payload?.version) {
+        $set.currentContentVersion = e.payload.version;
       }
+
+      // Device is a compact support snapshot; UpdateEvent remains the audit trail.
+      await Device.updateOne(
+        { deviceId, licenseId: license._id },
+        { $set }
+      );
     }
     return res.status(202).json({ message: "accepted", count: docs.length });
   } catch (e) {
