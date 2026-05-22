@@ -1430,6 +1430,8 @@ Closure notes:
 
 ### Phase 8: End-To-End Verification
 
+Status: Closed.
+
 Boundary:
 
 - Verification, bug fixes directly tied to failed tests, and documentation updates only.
@@ -1449,6 +1451,13 @@ Acceptance criteria:
 - Windows bundle creation/finalization/check response works end to end.
 - Content-only `all` behavior is covered.
 - Final implementation matches this plan.
+
+Closure notes:
+
+- Full backend suite was run with `pnpm exec mocha --require @babel/register tests/setup.js "tests/**/*.test.js" --exit`: update-related coverage passed, with 2 unrelated pre-existing test setup failures documented in `tests/controllers/reports.controller.test.js` and `tests/middleware/auth.middleware.test.js`.
+- Focused update verification passed with `36 passing`: `tests/utils/update-platform.utils.test.js`, `tests/services/updates.service.test.js`, `tests/controllers/dashboard/updates.controller.test.js`, `tests/controllers/updates.controller.test.js`, and `tests/migrations/backfill-update-platforms.test.js`.
+- Focused coverage verifies Android compatibility, Windows bundle parsing/finalization/check response behavior, content-only `platform: "all"`, tokenized download flow, event ingestion, device state updates, and the Phase 7 backfill path.
+- Manual Android and Windows environment verification was not run because no deployable fixture/environment was available in this workspace.
 
 ## 12. Risks And Remaining Constraints
 
