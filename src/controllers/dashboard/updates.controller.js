@@ -33,7 +33,7 @@ export const finalizeBundle = async (req, res) => {
       return res.json({ id, sizeBytes: bundle.sizeBytes, sha256: bundle.sha256, version: bundle.version, filesCount: (bundle.files || []).length });
     }
 
-    const meta = await parseBundleZip(bundle.storage);
+    const meta = await parseBundleZip(bundle.storage, { type: bundle.type, platform: bundle.platform });
     await UpdateBundle.updateOne({ _id: id }, { $set: { sizeBytes: meta.sizeBytes, sha256: meta.sha256, version: meta.version, files: meta.files, finalizedAt: new Date() } });
     return res.json({ id, sizeBytes: meta.sizeBytes, sha256: meta.sha256, version: meta.version, filesCount: meta.files?.length || 0 });
   } catch (e) {
@@ -50,7 +50,7 @@ export const uploadLocalBundle = async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "File missing" });
     // Move uploaded temp file to target filePath
     fs.renameSync(req.file.path, bundle.storage.filePath);
-    const meta = await parseBundleZip(bundle.storage);
+    const meta = await parseBundleZip(bundle.storage, { type: bundle.type, platform: bundle.platform });
     await UpdateBundle.updateOne({ _id: id }, { $set: { sizeBytes: meta.sizeBytes, sha256: meta.sha256, version: meta.version, files: meta.files, ingestedAt: new Date() } });
     return res.status(201).json({ id, sizeBytes: meta.sizeBytes, sha256: meta.sha256, version: meta.version, filesCount: meta.files?.length || 0 });
   } catch (e) {

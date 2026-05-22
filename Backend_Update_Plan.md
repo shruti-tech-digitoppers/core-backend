@@ -1205,6 +1205,8 @@ Closure notes:
 
 ### Phase 2: ZIP Parser And Metadata Validation
 
+Status: Closed.
+
 Boundary:
 
 - Only parsing/finalization metadata logic and parser unit tests.
@@ -1233,6 +1235,12 @@ Acceptance criteria:
 Stop/review point:
 
 - Continue only after parser tests cover Windows valid/invalid cases and Android regression cases.
+
+Closure notes:
+
+- Implemented platform-aware ZIP parsing and Windows installer metadata validation.
+- Focused Phase 2 tests passed: `pnpm exec mocha --require @babel/register tests/setup.js "tests/utils/update-platform.utils.test.js" "tests/services/updates.service.test.js"` (`17 passing`).
+- End-to-end Windows update flow remains blocked on Phase 3+ admin API, rollout validation, and device check behavior.
 
 ### Phase 3: Admin Bundle APIs
 

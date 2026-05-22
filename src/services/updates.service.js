@@ -3,8 +3,10 @@ import crypto from "crypto";
 import unzipper from "unzipper";
 import { UpdateBundle, Rollout } from "../models/mongo.model.js";
 import { getPresignedGetUrl, openStorageReadStream } from "./storage.service.js";
+import { normalizeBundlePlatform, validateBundlePlatformForType } from "../utils/update-platform.utils.js";
 
 const DOWNLOAD_TOKEN_SECRET = process.env.DOWNLOAD_TOKEN_SECRET || "dev-secret";
+const WINDOWS_INSTALLER_PATHS = ["app/windows/installer.exe", "app/installer.exe"];
 
 export const createDownloadToken = (bundleId, licenseId, deviceId, expiresSeconds = 900) => {
   const payload = { bundleId, licenseId, deviceId };
@@ -81,8 +83,6 @@ export const buildBundleResponse = async (bundle, licenseId, deviceId) => {
     metadata.version = bundle.version?.content?.version;
     metadata.baseVersion = bundle.version?.content?.baseVersion;
     metadata.fileCount = (bundle.files || []).length;
-    metadata.apkSHA256 = bundle.version?.content?.sha256;
-    metadata.apkSizeBytes = bundle.version?.content?.sizeBytes;
   }
 
   return {
@@ -95,14 +95,127 @@ export const buildBundleResponse = async (bundle, licenseId, deviceId) => {
   };
 };
 
-export const parseBundleZip = async (storageOrPath) => {
+const parseJson = (text, path) => {
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Invalid JSON in ${path}`);
+  }
+};
+
+const normalizeExpectedBundle = (options = {}) => {
+  const type = options.type;
+  if (!type) {
+    return { type: undefined, platform: normalizeBundlePlatform(options.platform) };
+  }
+
+  return {
+    type,
+    platform: validateBundlePlatformForType(type, options.platform)
+  };
+};
+
+const hasAppPayload = (type) => !type || type === "app" || type === "combined";
+
+const toPositiveNumber = (value) => {
+  const number = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(number) && number > 0 ? number : undefined;
+};
+
+const assertStringArray = (value, fieldName) => {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.some(item => typeof item !== "string")) {
+    throw new Error(`Windows metadata ${fieldName} must be an array of strings`);
+  }
+  return value;
+};
+
+const buildWindowsAppVersion = (appMeta, installerEntries) => {
+  const presentInstallerPaths = WINDOWS_INSTALLER_PATHS.filter(path => installerEntries.has(path));
+  if (presentInstallerPaths.length > 1) {
+    throw new Error("Windows app bundle must contain only one supported installer path");
+  }
+  if (!presentInstallerPaths.length) {
+    throw new Error("Windows app bundle requires app/windows/installer.exe or app/installer.exe");
+  }
+  if (!appMeta) {
+    throw new Error("Windows app bundle requires app/metadata.json");
+  }
+  if (appMeta.platform !== "windows") {
+    throw new Error('Windows metadata requires platform "windows"');
+  }
+  if (typeof appMeta.versionName !== "string" || !appMeta.versionName.trim()) {
+    throw new Error("Windows metadata requires versionName");
+  }
+
+  const versionCode = toPositiveNumber(appMeta.versionCode);
+  if (!versionCode) {
+    throw new Error("Windows metadata requires a positive numeric versionCode");
+  }
+  if (typeof appMeta.installerSha256 !== "string" || !appMeta.installerSha256.trim()) {
+    throw new Error("Windows metadata requires installerSha256");
+  }
+
+  const installerSizeBytes = toPositiveNumber(appMeta.installerSizeBytes);
+  if (!installerSizeBytes) {
+    throw new Error("Windows metadata requires installerSizeBytes");
+  }
+
+  const installerPath = presentInstallerPaths[0];
+  const installer = installerEntries.get(installerPath);
+  if (appMeta.installerSha256.toLowerCase() !== installer.sha256) {
+    throw new Error("installerSha256 does not match computed installer hash");
+  }
+  if (installerSizeBytes !== installer.size) {
+    throw new Error("installerSizeBytes does not match computed installer size");
+  }
+
+  return {
+    platform: "windows",
+    versionName: appMeta.versionName,
+    versionCode,
+    releaseNotes: appMeta.releaseNotes,
+    artifactKind: "windows_installer",
+    artifactPath: installerPath,
+    sha256: installer.sha256,
+    sizeBytes: installer.size,
+    installerPath,
+    installerSha256: installer.sha256,
+    installerSizeBytes: installer.size,
+    silentArgs: assertStringArray(appMeta.silentArgs, "silentArgs"),
+    relaunchArgs: assertStringArray(appMeta.relaunchArgs, "relaunchArgs")
+  };
+};
+
+const buildAndroidAppVersion = (appMeta, appApk) => {
+  if (!appMeta && !appApk) return undefined;
+
+  const appVersion = {
+    platform: "android",
+    versionName: appMeta?.versionName,
+    versionCode: appMeta?.versionCode !== undefined ? Number(appMeta.versionCode) || undefined : undefined,
+    releaseNotes: appMeta?.releaseNotes
+  };
+
+  if (appApk) {
+    appVersion.artifactKind = "android_apk";
+    appVersion.artifactPath = "app/app.apk";
+    appVersion.sizeBytes = appApk.size;
+    appVersion.sha256 = appApk.sha256;
+  }
+
+  return appVersion;
+};
+
+export const parseBundleZip = async (storageOrPath, options = {}) => {
+  const expected = normalizeExpectedBundle(options);
   // Open outer ZIP stream and get total size
   const { stream, sizeBytes } = await openStorageReadStream(storageOrPath);
   // Tee the stream through a hash while parsing to compute overall sha256 without a second read
   const overallHash = crypto.createHash("sha256");
 
-  let appApkSha = null;
-  let appApkSize = 0;
+  let appApk = null;
+  const windowsInstallers = new Map();
   let appMeta = null;
   let contentManifest = null;
   const computedContentFiles = new Map(); // entryPath -> { sha256, size }
@@ -135,19 +248,21 @@ export const parseBundleZip = async (storageOrPath) => {
             return;
           }
           if (entryPath === "app/app.apk") {
-            const r = await readEntryToHash(entry);
-            appApkSha = r.sha256;
-            appApkSize = r.size;
+            appApk = await readEntryToHash(entry);
+            return;
+          }
+          if (WINDOWS_INSTALLER_PATHS.includes(entryPath)) {
+            windowsInstallers.set(entryPath, await readEntryToHash(entry));
             return;
           }
           if (entryPath === "app/metadata.json") {
             const text = await readEntryToString(entry);
-            try { appMeta = JSON.parse(text); } catch { appMeta = null; }
+            appMeta = parseJson(text, entryPath);
             return;
           }
           if (entryPath === "content/manifest.json") {
             const text = await readEntryToString(entry);
-            try { contentManifest = JSON.parse(text); } catch { contentManifest = null; }
+            contentManifest = parseJson(text, entryPath);
             return;
           }
           if (entryPath.startsWith("content/files/")) {
@@ -159,21 +274,26 @@ export const parseBundleZip = async (storageOrPath) => {
           entry.autodrain();
         } catch (e) {
           entry.autodrain();
+          reject(e);
         }
       })
       .on("close", resolve)
       .on("error", reject);
   });
 
-  // Build version info
   const version = {};
-  if (appMeta && (appMeta.versionName || appMeta.versionCode || appMeta.releaseNotes)) {
-    version.app = {
-      versionName: appMeta.versionName,
-      versionCode: typeof appMeta.versionCode === "number" ? appMeta.versionCode : Number(appMeta.versionCode) || undefined,
-      releaseNotes: appMeta.releaseNotes
-    };
+
+  if (hasAppPayload(expected.type)) {
+    const appPlatform = expected.platform || normalizeBundlePlatform(appMeta?.platform) || (windowsInstallers.size ? "windows" : "android");
+    if (appPlatform === "windows") {
+      version.app = buildWindowsAppVersion(appMeta, windowsInstallers);
+    } else if (appPlatform === "android") {
+      version.app = buildAndroidAppVersion(appMeta, appApk);
+    } else if (appPlatform) {
+      throw new Error(`App bundle platform "${appPlatform}" is not supported by the ZIP parser`);
+    }
   }
+
   if (contentManifest && (contentManifest.version || contentManifest.baseVersion)) {
     version.content = {
       version: contentManifest.version,
@@ -234,14 +354,6 @@ export const parseBundleZip = async (storageOrPath) => {
         });
       }
     }
-  }
-
-  // Override app size/hash with computed values
-  if (appApkSha != null && appApkSize > 0) {
-    if (!version.app) version.app = {};
-    // Attach computed integrity to app version fields for downstream usage
-    version.app.sizeBytes = appApkSize;
-    version.app.sha256 = appApkSha;
   }
 
   const sha256 = overallHash.digest("hex");
