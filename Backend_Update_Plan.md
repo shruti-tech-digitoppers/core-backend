@@ -1393,6 +1393,8 @@ Closure notes:
 
 ### Phase 7: Migration And Indexes
 
+Status: Closed.
+
 Boundary:
 
 - Data migration/backfill and index creation only.
@@ -1418,6 +1420,13 @@ Acceptance criteria:
 Stop/review point:
 
 - Review migration results against real/staging data before considering the backend rollout complete.
+
+Closure notes:
+
+- Added a rerunnable `migrate:update-platforms` script with dry-run support for Phase 7 data review.
+- Existing bundles with missing platform are backfilled to Android, and legacy Android app metadata receives platform-neutral artifact fields.
+- Existing rollout platform snapshots are corrected from their referenced bundle platform without changing rollout status or target licenses.
+- Added the compound rollout index for `status + platform + targetLicenses`.
 
 ### Phase 8: End-To-End Verification
 
