@@ -3,7 +3,9 @@ import crypto from "crypto";
 import fs from "fs";
 import os from "os";
 import path from "path";
-import { buildBundleResponse, parseBundleZip } from "../../src/services/updates.service.js";
+import sinon from "sinon";
+import { Rollout, UpdateBundle } from "../../src/models/mongo.model.js";
+import { buildBundleResponse, parseBundleZip, resolvePendingBundles } from "../../src/services/updates.service.js";
 
 const crcTable = new Uint32Array(256).map((_, index) => {
   let crc = index;
@@ -111,6 +113,10 @@ const expectRejectedWith = async (promise, message) => {
 };
 
 describe("Update bundle ZIP parser", () => {
+  afterEach(() => {
+    sinon.restore();
+  });
+
   it("parses a valid Windows app bundle with the preferred installer path", async () => {
     const installer = Buffer.from("windows installer");
     const metadata = {
@@ -254,5 +260,83 @@ describe("Update bundle ZIP parser", () => {
 
     expect(response.metadata).to.not.have.property("apkSHA256");
     expect(response.metadata).to.not.have.property("apkSizeBytes");
+    expect(response).to.include({ platform: "android" });
+  });
+
+  it("emits Windows installer metadata in bundle responses", async () => {
+    const response = await buildBundleResponse({
+      _id: "bundle-windows",
+      type: "app",
+      platform: "windows",
+      storage: { filePath: "bundle.zip" },
+      sizeBytes: 10,
+      sha256: "outer",
+      version: {
+        app: {
+          versionName: "2.2.6",
+          versionCode: 226,
+          artifactKind: "windows_installer",
+          artifactPath: "app/windows/installer.exe",
+          sha256: "installer-sha",
+          sizeBytes: 123,
+          installerPath: "app/windows/installer.exe",
+          installerSha256: "installer-sha",
+          installerSizeBytes: 123,
+          silentArgs: ["/S"],
+          relaunchArgs: []
+        }
+      }
+    }, "license-1", "device-1");
+
+    expect(response).to.include({ platform: "windows" });
+    expect(response.metadata).to.include({
+      artifactKind: "windows_installer",
+      installerPath: "app/windows/installer.exe",
+      installerSha256: "installer-sha",
+      installerSizeBytes: 123
+    });
+    expect(response.metadata).to.not.have.property("apkSHA256");
+  });
+
+  it("filters pending app bundles by client platform and returns the latest applicable app", async () => {
+    const rollouts = [
+      { bundleId: "android-app", mandatory: true, platform: "android" },
+      { bundleId: "windows-old", mandatory: true, platform: "windows" },
+      { bundleId: "windows-new", mandatory: false, platform: "windows" },
+      { bundleId: "content-all", mandatory: false, platform: "all" }
+    ];
+    const bundles = [
+      { _id: "android-app", type: "app", platform: "android", version: { app: { versionCode: 9 } } },
+      { _id: "windows-old", type: "app", platform: "windows", version: { app: { versionCode: 10 } } },
+      { _id: "windows-new", type: "app", platform: "windows", version: { app: { versionCode: 12 } } },
+      { _id: "content-all", type: "content", platform: "all", version: { content: { version: "content-2" } } }
+    ];
+    sinon.stub(Rollout, "find").returns({ lean: sinon.stub().resolves(rollouts) });
+    sinon.stub(UpdateBundle, "find").returns({ lean: sinon.stub().resolves(bundles) });
+
+    const pending = await resolvePendingBundles(
+      "license-windows",
+      { app_b: 8, content_v: "content-1" },
+      "windows"
+    );
+
+    expect(pending.map(bundle => bundle._id)).to.deep.equal(["windows-new", "content-all"]);
+    expect(pending[0]._mandatory).to.equal(false);
+  });
+
+  it("keeps legacy Android bundle defaults compatible with tablet clients", async () => {
+    sinon.stub(Rollout, "find").returns({
+      lean: sinon.stub().resolves([{ bundleId: "legacy-app", mandatory: true }])
+    });
+    sinon.stub(UpdateBundle, "find").returns({
+      lean: sinon.stub().resolves([
+        { _id: "legacy-app", type: "app", version: { app: { versionCode: 2 } } }
+      ])
+    });
+
+    const pending = await resolvePendingBundles("license-tablet", { app_b: 1 }, "tablet");
+
+    expect(pending.map(bundle => bundle._id)).to.deep.equal(["legacy-app"]);
+    expect(pending[0]._mandatory).to.equal(true);
   });
 });

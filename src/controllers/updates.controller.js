@@ -1,6 +1,7 @@
 import { Device, License, Rollout, UpdateBundle, UpdateEvent } from "../models/mongo.model.js";
 import { buildBundleResponse, resolvePendingBundles, verifyDownloadToken } from "../services/updates.service.js";
 import { streamLocalFileWithRange, getPresignedGetUrl } from "../services/storage.service.js";
+import { arePlatformsCompatible, normalizeClientPlatform } from "../utils/update-platform.utils.js";
 
 export const checkForUpdates = async (req, res) => {
   try {
@@ -14,6 +15,10 @@ export const checkForUpdates = async (req, res) => {
     if (String(license.licenseKey) !== String(license_id)) {
       return res.status(403).json({ message: "License mismatch" });
     }
+    const normalizedPlatform = normalizeClientPlatform(platform);
+    if (!arePlatformsCompatible(license.platform, normalizedPlatform)) {
+      return res.status(403).json({ message: "License platform mismatch" });
+    }
 
     // upsert device record
     await Device.findOneAndUpdate(
@@ -21,13 +26,13 @@ export const checkForUpdates = async (req, res) => {
       {
         deviceId: device_id,
         licenseId: license._id,
-        platform,
+        platform: normalizedPlatform,
         lastSeenAt: new Date()
       },
       { upsert: true }
     );
 
-    const bundles = await resolvePendingBundles(license._id, { app_v, app_b, content_v });
+    const bundles = await resolvePendingBundles(license._id, { app_v, app_b, content_v }, normalizedPlatform);
     if (!bundles.length) return res.json({ mandatory: false, bundles: [] });
 
     // Precedence: if any applicable bundle is mandatory, overall mandatory
@@ -86,7 +91,7 @@ export const proxyDownload = async (req, res) => {
     const license = await License.findById(payload.licenseId).lean();
     if(!license) return res.status(404).end();
     const licenseKey = license.licenseKey;
-    if (String(licenseKey) !== String(req.query.license_id || '')) return res.status(403).end();
+    if (req.query.license_id && String(licenseKey) !== String(req.query.license_id)) return res.status(403).end();
     const keyOrPath = bundle.storage?.s3Key || bundle.storage?.filePath;
     const presigned = await getPresignedGetUrl(keyOrPath, 300);
     if (presigned.url) {

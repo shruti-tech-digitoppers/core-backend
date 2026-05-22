@@ -1308,6 +1308,8 @@ Stop/review point:
 
 ### Phase 5: Device Check Resolution And Download Compatibility
 
+Status: Closed.
+
 Boundary:
 
 - `/api/updates/check`, `resolvePendingBundles`, `buildBundleResponse`, and download URL compatibility only.
@@ -1338,6 +1340,13 @@ Acceptance criteria:
 Stop/review point:
 
 - Verify device check responses against Android and Windows app expectations before event state updates are added.
+
+Closure notes:
+
+- Implemented license/client platform validation for update checks, normalized stored device platform, and platform-aware pending bundle resolution.
+- Bundle selection now filters rollout/bundle platform compatibility, allows content-only `all` across supported clients, and returns only the highest applicable app `versionCode`.
+- Bundle responses now include top-level `platform` and Windows installer metadata, and local/proxy download fallback no longer requires a separate `license_id` query when the signed token identifies the license.
+- Focused Phase 5 tests passed: `pnpm exec mocha --require @babel/register tests/setup.js "tests/utils/update-platform.utils.test.js" "tests/services/updates.service.test.js" "tests/controllers/dashboard/updates.controller.test.js" "tests/controllers/updates.controller.test.js"` (`29 passing`).
 
 ### Phase 6: Event Ingestion And Device State
 

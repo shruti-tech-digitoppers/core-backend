@@ -3,7 +3,12 @@ import crypto from "crypto";
 import unzipper from "unzipper";
 import { UpdateBundle, Rollout } from "../models/mongo.model.js";
 import { getPresignedGetUrl, openStorageReadStream } from "./storage.service.js";
-import { normalizeBundlePlatform, validateBundlePlatformForType } from "../utils/update-platform.utils.js";
+import {
+  normalizeBundlePlatform,
+  normalizeClientPlatform,
+  normalizeRolloutPlatform,
+  validateBundlePlatformForType
+} from "../utils/update-platform.utils.js";
 
 const DOWNLOAD_TOKEN_SECRET = process.env.DOWNLOAD_TOKEN_SECRET || "dev-secret";
 const WINDOWS_INSTALLER_PATHS = ["app/windows/installer.exe", "app/installer.exe"];
@@ -17,7 +22,41 @@ export const verifyDownloadToken = (token) => {
   return jwt.verify(token, DOWNLOAD_TOKEN_SECRET);
 };
 
-export const resolvePendingBundles = async (licenseId, versions) => {
+const hasAppPayload = (type) => !type || type === "app" || type === "combined";
+const hasContentPayload = (type) => !type || type === "content" || type === "combined";
+
+const isBundleCompatibleWithClient = (bundle, clientPlatform) => {
+  const bundlePlatform = normalizeBundlePlatform(bundle.platform);
+  if (!bundlePlatform || !clientPlatform) return false;
+  if (bundle.type === "content" && bundlePlatform === "all") return true;
+  return bundlePlatform === clientPlatform;
+};
+
+const isRolloutCompatibleWithClient = (rollout, bundle, clientPlatform) => {
+  const rolloutPlatform = normalizeRolloutPlatform(rollout.platform, bundle.platform);
+  if (!rolloutPlatform || !clientPlatform) return false;
+  if (bundle.type === "content" && rolloutPlatform === "all") return true;
+  return rolloutPlatform === clientPlatform;
+};
+
+const appVersionCode = (bundle) => Number(bundle.version?.app?.versionCode || 0);
+
+const hasAppUpdate = (bundle, versions) => {
+  if (!hasAppPayload(bundle.type)) return false;
+  const targetCode = appVersionCode(bundle);
+  const currentCode = Number(versions.app_b);
+  return targetCode > 0 && (!Number.isFinite(currentCode) || currentCode < targetCode);
+};
+
+const hasContentUpdate = (bundle, versions) => {
+  if (!hasContentPayload(bundle.type)) return false;
+  const targetContent = bundle.version?.content?.version;
+  return !!targetContent && versions.content_v !== targetContent;
+};
+
+export const resolvePendingBundles = async (licenseId, versions = {}, platform) => {
+  const clientPlatform = normalizeClientPlatform(platform);
+  if (!clientPlatform) return [];
   const now = new Date();
   const rollouts = await Rollout.find({
     status: "rolling_out",
@@ -37,29 +76,29 @@ export const resolvePendingBundles = async (licenseId, versions) => {
   if (!rollouts.length) return [];
   const bundleIds = rollouts.map(r => r.bundleId);
   const bundles = await UpdateBundle.find({ _id: { $in: bundleIds } }).lean();
-  const applicable = bundles.filter(b => {
-    if (b.type === "app" || b.type === "combined") {
-      const targetCode = b.version?.app?.versionCode || 0;
-      if (versions.app_b && Number(versions.app_b) >= targetCode) {
-        // ignore app part
-      } else {
-        return true;
-      }
-    }
-    if (b.type === "content" || b.type === "combined") {
-      const targetContent = b.version?.content?.version;
-      if (versions.content_v && versions.content_v === targetContent) {
-        // ignore content part
-      } else {
-        return true;
-      }
-    }
-    return false;
+  const bundlesById = new Map(bundles.map(bundle => [String(bundle._id), bundle]));
+  const compatibleRollouts = rollouts.filter((rollout) => {
+    const bundle = bundlesById.get(String(rollout.bundleId));
+    return bundle
+      && isBundleCompatibleWithClient(bundle, clientPlatform)
+      && isRolloutCompatibleWithClient(rollout, bundle, clientPlatform);
   });
-  
+  const compatibleBundleIds = new Set(compatibleRollouts.map(rollout => String(rollout.bundleId)));
+  const compatibleBundles = bundles.filter(bundle => compatibleBundleIds.has(String(bundle._id)));
+
+  const latestAppCode = compatibleBundles.reduce((max, bundle) => (
+    hasAppUpdate(bundle, versions) ? Math.max(max, appVersionCode(bundle)) : max
+  ), 0);
+  const applicable = compatibleBundles.filter((bundle) => {
+    if (hasAppPayload(bundle.type)) {
+      return latestAppCode > 0 && hasAppUpdate(bundle, versions) && appVersionCode(bundle) === latestAppCode;
+    }
+    return hasContentUpdate(bundle, versions);
+  });
+
   // Mandatory precedence: if any rollout for a bundle is mandatory, mark overall mandatory
   const bundleIdToMandatory = new Map();
-  for (const r of rollouts) {
+  for (const r of compatibleRollouts) {
     const cur = bundleIdToMandatory.get(String(r.bundleId)) || false;
     bundleIdToMandatory.set(String(r.bundleId), cur || !!r.mandatory);
   }
@@ -73,11 +112,24 @@ export const buildBundleResponse = async (bundle, licenseId, deviceId) => {
 
   const metadata = {};
   if (bundle.type === "app" || bundle.type === "combined") {
-    metadata.versionName = bundle.version?.app?.versionName;
-    metadata.versionCode = bundle.version?.app?.versionCode;
-    metadata.releaseNotes = bundle.version?.app?.releaseNotes;
-    metadata.apkSHA256 = bundle.version?.app?.sha256;
-    metadata.apkSizeBytes = bundle.version?.app?.sizeBytes;
+    const app = bundle.version?.app || {};
+    metadata.versionName = app.versionName;
+    metadata.versionCode = app.versionCode;
+    metadata.releaseNotes = app.releaseNotes;
+    metadata.artifactKind = app.artifactKind;
+    metadata.artifactPath = app.artifactPath;
+    metadata.artifactSHA256 = app.sha256;
+    metadata.artifactSizeBytes = app.sizeBytes;
+    if (normalizeBundlePlatform(bundle.platform) === "windows") {
+      metadata.installerPath = app.installerPath || app.artifactPath;
+      metadata.installerSha256 = app.installerSha256 || app.sha256;
+      metadata.installerSizeBytes = app.installerSizeBytes || app.sizeBytes;
+      metadata.silentArgs = app.silentArgs || [];
+      metadata.relaunchArgs = app.relaunchArgs || [];
+    } else {
+      metadata.apkSHA256 = app.apkSHA256 || app.sha256;
+      metadata.apkSizeBytes = app.apkSizeBytes || app.sizeBytes;
+    }
   }
   if (bundle.type === "content" || bundle.type === "combined") {
     metadata.version = bundle.version?.content?.version;
@@ -88,6 +140,7 @@ export const buildBundleResponse = async (bundle, licenseId, deviceId) => {
   return {
     id: String(bundle._id),
     type: bundle.type,
+    platform: normalizeBundlePlatform(bundle.platform),
     metadata,
     sizeBytes: bundle.sizeBytes,
     sha256: bundle.sha256,
@@ -114,8 +167,6 @@ const normalizeExpectedBundle = (options = {}) => {
     platform: validateBundlePlatformForType(type, options.platform)
   };
 };
-
-const hasAppPayload = (type) => !type || type === "app" || type === "combined";
 
 const toPositiveNumber = (value) => {
   const number = typeof value === "number" ? value : Number(value);
