@@ -10,14 +10,25 @@ const FileSchema = new mongoose.Schema({
 
 export default new mongoose.Schema({
   type: { type: String, enum: ["app", "content", "combined"], required: true },
+  platform: { type: String, enum: ["android", "windows", "linux", "all"], required: true, default: "android", index: true },
   version: {
     app: {
+      platform: { type: String, enum: ["android", "windows", "linux"] },
       versionName: { type: String },
       versionCode: { type: Number },
       releaseNotes: { type: String },
-      // Persist computed integrity for the primary app artifact (app/app.apk)
+      // Keep canonical artifact fields platform-neutral so Android APKs and Windows installers share integrity handling.
+      artifactPath: { type: String },
+      artifactKind: { type: String, enum: ["android_apk", "windows_installer"] },
       sha256: { type: String },
-      sizeBytes: { type: Number }
+      sizeBytes: { type: Number },
+      apkSHA256: { type: String },
+      apkSizeBytes: { type: Number },
+      installerPath: { type: String },
+      installerSha256: { type: String },
+      installerSizeBytes: { type: Number },
+      silentArgs: [{ type: String }],
+      relaunchArgs: [{ type: String }]
     },
     content: {
       version: { type: String },
