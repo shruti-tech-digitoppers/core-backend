@@ -1244,6 +1244,8 @@ Closure notes:
 
 ### Phase 3: Admin Bundle APIs
 
+Status: Closed.
+
 Boundary:
 
 - Bundle creation/upload/finalization APIs only.
@@ -1269,6 +1271,12 @@ Acceptance criteria:
 Stop/review point:
 
 - Review admin API response shape before dashboard or rollout work depends on it.
+
+Closure notes:
+
+- Implemented admin bundle platform normalization, storage, response shape, and invalid type/platform validation.
+- Finalization and local upload now parse bundles using the stored type/platform and return parsed app/content metadata with `platform`.
+- Focused Phase 3 tests passed: `pnpm exec mocha --require @babel/register tests/setup.js "tests/utils/update-platform.utils.test.js" "tests/services/updates.service.test.js" "tests/controllers/dashboard/updates.controller.test.js"` (`23 passing`).
 
 ### Phase 4: Rollout Validation
 
