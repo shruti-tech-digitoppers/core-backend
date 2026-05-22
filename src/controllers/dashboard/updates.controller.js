@@ -135,7 +135,7 @@ export const listRollouts = async (_req, res) => {
       .sort({ createdAt: -1 })
       .populate({
         path: "bundleId",
-        select: "type version notes finalizedAt ingestedAt sizeBytes sha256",
+        select: "type platform version notes finalizedAt ingestedAt sizeBytes sha256",
       })
       .populate({
         path: "targetLicenses",

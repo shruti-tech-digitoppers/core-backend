@@ -4,8 +4,8 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import sinon from "sinon";
-import { finalizeBundle, initiateUpload, uploadLocalBundle } from "../../../src/controllers/dashboard/updates.controller.js";
-import { UpdateBundle } from "../../../src/models/mongo.model.js";
+import { finalizeBundle, initiateUpload, listRollouts, uploadLocalBundle } from "../../../src/controllers/dashboard/updates.controller.js";
+import { Rollout, UpdateBundle } from "../../../src/models/mongo.model.js";
 
 const crcTable = new Uint32Array(256).map((_, index) => {
   let crc = index;
@@ -243,5 +243,35 @@ describe("Dashboard update bundle controller", () => {
     expect(res.json.firstCall.args[0]).to.include({ id: "bundle-5", platform: "windows" });
     expect(updateStub.firstCall.args[1].$set.platform).to.equal("windows");
     expect(updateStub.firstCall.args[1].$set.version.app.versionCode).to.equal(228);
+  });
+
+  it("includes populated bundle platform in rollout lists", async () => {
+    const query = {
+      sort: sinon.stub().returnsThis(),
+      populate: sinon.stub().returnsThis(),
+      lean: sinon.stub().resolves([{
+        _id: "rollout-1",
+        platform: "windows",
+        bundleId: { _id: "bundle-1", platform: "windows", type: "app" },
+        targetLicenses: [{ _id: "license-1", platform: "windows" }]
+      }])
+    };
+    sinon.stub(Rollout, "find").returns(query);
+    const res = makeResponse();
+
+    await listRollouts({}, res);
+
+    expect(query.populate.firstCall.args[0]).to.deep.equal({
+      path: "bundleId",
+      select: "type platform version notes finalizedAt ingestedAt sizeBytes sha256"
+    });
+    expect(res.json.firstCall.args[0].rollouts[0]).to.include({
+      _id: "rollout-1",
+      platform: "windows",
+      targetLicensesCount: 1
+    });
+    expect(res.json.firstCall.args[0].rollouts[0].bundleId).to.include({
+      platform: "windows"
+    });
   });
 });
