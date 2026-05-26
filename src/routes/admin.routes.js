@@ -2,7 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { initiateUpload, finalizeBundle, createRollout, updateRolloutStatus, listRollouts, uploadLocalBundle } from "../controllers/dashboard/updates.controller.js";
+import { initiateUpload, finalizeBundle, createRollout, updateRolloutStatus, getRolloutById, listRollouts, uploadLocalBundle } from "../controllers/dashboard/updates.controller.js";
 import { getLocalBundlesDir } from "../services/storage.service.js";
 import { updatesMetrics } from "../controllers/dashboard/metrics.controller.js";
 
@@ -19,6 +19,7 @@ const upload = multer({ dest: bundlesDir, limits: { fileSize: maxUploadMb * 1024
 router.post("/api/admin/bundles/:id/upload", upload.single('file'), uploadLocalBundle);
 router.post("/api/admin/rollouts", createRollout);
 router.put("/api/admin/rollouts/:id", updateRolloutStatus);
+router.get("/api/admin/rollouts/:id", getRolloutById);
 router.get("/api/admin/rollouts", listRollouts);
 router.get("/api/admin/metrics/updates", updatesMetrics);
 

@@ -150,11 +150,14 @@ export const buildBundleResponse = async (bundle, licenseId, deviceId) => {
 
 const parseJson = (text, path) => {
   try {
-    return JSON.parse(text);
+    // Windows tooling can emit UTF-8 BOM-prefixed metadata; JSON.parse treats that marker as invalid syntax.
+    return JSON.parse(text.replace(/^\uFEFF/, ""));
   } catch {
     throw new Error(`Invalid JSON in ${path}`);
   }
 };
+
+const normalizeBundleZipPath = (value) => String(value || "").replace(/\\/g, "/").replace(/^\/+/, "");
 
 const normalizeExpectedBundle = (options = {}) => {
   const type = options.type;
@@ -293,7 +296,7 @@ export const parseBundleZip = async (storageOrPath, options = {}) => {
       .pipe(unzipper.Parse())
       .on("entry", async (entry) => {
         try {
-          const entryPath = entry.path;
+          const entryPath = normalizeBundleZipPath(entry.path);
           if (entry.type === "Directory") {
             entry.autodrain();
             return;
@@ -354,8 +357,10 @@ export const parseBundleZip = async (storageOrPath, options = {}) => {
 
   // Build files list from computed entries, merging type/encryption from manifest if present
   let files = [];
-  const manifestFiles = Array.isArray(contentManifest?.files) ? contentManifest.files : [];
-  // Preserve manifest path verbatim when present; else use the actual zip entry path
+  const manifestFiles = Array.isArray(contentManifest?.files)
+    ? contentManifest.files.map(file => ({ ...file, path: normalizeBundleZipPath(file.path) }))
+    : [];
+  // Keep persisted bundle paths canonical even when uploaded ZIPs/manifests use Windows separators.
   const manifestIndex = new Map(manifestFiles.map(f => [f.path, f]));
   // Build a reverse index from entryPath -> manifestPath when both refer to the same file
   const entryToManifestPath = new Map();

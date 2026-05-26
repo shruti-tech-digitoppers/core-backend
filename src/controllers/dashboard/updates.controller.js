@@ -2,7 +2,7 @@ import fs from "fs";
 import { UpdateBundle, Rollout } from "../../models/mongo.model.js";
 import { getPresignedPutUrl, getStorageLocator } from "../../services/storage.service.js";
 import { parseBundleZip } from "../../services/updates.service.js";
-import { validateBundlePlatformForType } from "../../utils/update-platform.utils.js";
+import { normalizeRolloutPlatform, validateBundlePlatformForType } from "../../utils/update-platform.utils.js";
 
 const buildBundlePayload = ({ id, platform, meta, files }) => ({
   id,
@@ -99,7 +99,13 @@ export const createRollout = async (req, res) => {
     if (!bundleId || !Array.isArray(targetLicenses) || !targetLicenses.length) {
       return res.status(400).json({ message: "Invalid payload" });
     }
-    const rollout = await Rollout.create({ bundleId, targetLicenses, mandatory: !!mandatory, status: "rolling_out", schedule });
+    const bundle = await UpdateBundle.findById(bundleId).select("platform").lean();
+    if (!bundle) return res.status(404).json({ message: "Bundle not found" });
+
+    const platform = normalizeRolloutPlatform(undefined, bundle.platform);
+    if (!platform) return res.status(400).json({ message: "Invalid bundle platform" });
+
+    const rollout = await Rollout.create({ bundleId, platform, targetLicenses, mandatory: !!mandatory, status: "rolling_out", schedule });
     return res.status(201).json({ id: rollout._id });
   } catch (e) {
     return res.status(500).json({ message: "Failed to create rollout", error: e.message });
@@ -117,6 +123,41 @@ export const updateRolloutStatus = async (req, res) => {
     return res.json({ id, status });
   } catch (e) {
     return res.status(500).json({ message: "Failed to update rollout", error: e.message });
+  }
+};
+
+export const getRolloutById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const query = { _id: id };
+
+    // Keep org scoping if your backend uses orgId on rollouts.
+    if (req.user?.orgId) {
+      query.orgId = req.user.orgId;
+    }
+
+    const rollout = await Rollout.findOne(query)
+      .populate({
+        path: "bundleId",
+        select: "type platform version finalizedAt ingestedAt notes",
+      })
+      .populate({
+        path: "targetLicenses",
+        select: "licenseKey platform isRegistered registeredTo registeredAt",
+      })
+      .lean();
+
+    if (!rollout) {
+      return res.status(404).json({ message: "Rollout not found" });
+    }
+
+    return res.json({ rollout });
+  } catch (e) {
+    return res.status(500).json({
+      message: "Failed to fetch rollout",
+      error: e.message,
+    });
   }
 };
 

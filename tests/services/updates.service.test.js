@@ -148,6 +148,51 @@ describe("Update bundle ZIP parser", () => {
     expect(result.version.app.silentArgs).to.deep.equal(["/S"]);
   });
 
+  it("parses Windows app bundles with backslash ZIP entry paths", async () => {
+    const installer = Buffer.from("windows installer");
+    const metadata = {
+      platform: "windows",
+      versionName: "2.2.6",
+      versionCode: 226,
+      installerSha256: sha256(installer),
+      installerSizeBytes: installer.length
+    };
+
+    const result = await parseZip([
+      ["app\\windows\\installer.exe", installer],
+      ["app\\metadata.json", JSON.stringify(metadata)]
+    ], { type: "app", platform: "windows" });
+
+    expect(result.version.app).to.include({
+      artifactPath: "app/windows/installer.exe",
+      installerPath: "app/windows/installer.exe",
+      installerSha256: sha256(installer),
+      installerSizeBytes: installer.length
+    });
+  });
+
+  it("parses BOM-prefixed app metadata JSON", async () => {
+    const installer = Buffer.from("windows installer");
+    const metadata = {
+      platform: "windows",
+      versionName: "2.2.6",
+      versionCode: 226,
+      installerSha256: sha256(installer),
+      installerSizeBytes: installer.length
+    };
+
+    const result = await parseZip([
+      ["app/windows/installer.exe", installer],
+      ["app/metadata.json", `\uFEFF${JSON.stringify(metadata)}`]
+    ], { type: "app", platform: "windows" });
+
+    expect(result.version.app).to.include({
+      versionName: "2.2.6",
+      versionCode: 226,
+      installerSha256: sha256(installer)
+    });
+  });
+
   it("parses a Windows app bundle with the fallback installer path", async () => {
     const installer = Buffer.from("fallback installer");
 
@@ -222,6 +267,24 @@ describe("Update bundle ZIP parser", () => {
     });
   });
 
+  it("parses Android app bundles with backslash ZIP entry paths", async () => {
+    const apk = Buffer.from("android apk");
+    const result = await parseZip([
+      ["app\\app.apk", apk],
+      ["app\\metadata.json", JSON.stringify({
+        versionName: "1.0.0",
+        versionCode: "100"
+      })]
+    ], { type: "app", platform: "android" });
+
+    expect(result.version.app).to.include({
+      artifactKind: "android_apk",
+      artifactPath: "app/app.apk",
+      sha256: sha256(apk),
+      sizeBytes: apk.length
+    });
+  });
+
   it("parses content-only all-platform bundles without app metadata", async () => {
     const content = Buffer.from("lesson");
     const result = await parseZip([
@@ -240,6 +303,30 @@ describe("Update bundle ZIP parser", () => {
     });
     expect(result.files).to.deep.include({
       path: "lesson.txt",
+      sha256: sha256(content),
+      size: content.length,
+      type: "text/plain",
+      encryption: undefined
+    });
+  });
+
+  it("parses content bundles with backslash ZIP entry and manifest paths", async () => {
+    const content = Buffer.from("lesson");
+    const result = await parseZip([
+      ["content\\manifest.json", JSON.stringify({
+        version: "content-1",
+        baseVersion: "content-0",
+        files: [{ path: "files\\lesson.txt", type: "text/plain" }]
+      })],
+      ["content\\files\\lesson.txt", content]
+    ], { type: "content", platform: "all" });
+
+    expect(result.version.content).to.deep.equal({
+      version: "content-1",
+      baseVersion: "content-0"
+    });
+    expect(result.files).to.deep.include({
+      path: "files/lesson.txt",
       sha256: sha256(content),
       size: content.length,
       type: "text/plain",

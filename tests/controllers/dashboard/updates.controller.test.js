@@ -4,7 +4,7 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import sinon from "sinon";
-import { finalizeBundle, initiateUpload, listRollouts, uploadLocalBundle } from "../../../src/controllers/dashboard/updates.controller.js";
+import { createRollout, finalizeBundle, initiateUpload, listRollouts, uploadLocalBundle } from "../../../src/controllers/dashboard/updates.controller.js";
 import { Rollout, UpdateBundle } from "../../../src/models/mongo.model.js";
 
 const crcTable = new Uint32Array(256).map((_, index) => {
@@ -243,6 +243,33 @@ describe("Dashboard update bundle controller", () => {
     expect(res.json.firstCall.args[0]).to.include({ id: "bundle-5", platform: "windows" });
     expect(updateStub.firstCall.args[1].$set.platform).to.equal("windows");
     expect(updateStub.firstCall.args[1].$set.version.app.versionCode).to.equal(228);
+  });
+
+  it("creates rollout with the selected bundle platform snapshot", async () => {
+    const bundleQuery = {
+      select: sinon.stub().returnsThis(),
+      lean: sinon.stub().resolves({ _id: "bundle-windows", platform: "windows" })
+    };
+    sinon.stub(UpdateBundle, "findById").returns(bundleQuery);
+    const createStub = sinon.stub(Rollout, "create").resolves({ _id: "rollout-windows" });
+    const res = makeResponse();
+
+    await createRollout({
+      body: {
+        bundleId: "bundle-windows",
+        targetLicenses: ["license-windows"],
+        mandatory: true
+      }
+    }, res);
+
+    expect(res.status.calledWith(201)).to.be.true;
+    expect(bundleQuery.select.firstCall.args[0]).to.equal("platform");
+    expect(createStub.firstCall.args[0]).to.include({
+      bundleId: "bundle-windows",
+      platform: "windows",
+      mandatory: true,
+      status: "rolling_out"
+    });
   });
 
   it("includes populated bundle platform in rollout lists", async () => {
