@@ -9,6 +9,16 @@ const deviceSchema = new mongoose.Schema({
     versionCode: { type: Number }
   },
   currentContentVersion: { type: String },
+  lastUpdate: {
+    bundleId: { type: mongoose.Schema.Types.ObjectId, ref: "UpdateBundle" },
+    type: { type: String, enum: ["app", "content", "combined"] },
+    platform: { type: String, enum: ["android", "windows", "linux", "all"] },
+    status: { type: String },
+    event: { type: String },
+    updatedAt: { type: Date },
+    errorCode: { type: String },
+    errorMessage: { type: String }
+  },
   lastSeenAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 

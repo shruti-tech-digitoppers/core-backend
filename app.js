@@ -18,7 +18,6 @@ import { API_MESSAGES, ERROR_CODES } from './src/constants/error.constants.js';
 
 app.set('PORT', process.argv[2] || process.env.PORT || 3000);
 
-app.use(express.json());
 
 // CORS configuration to allow dashboard origin and handle preflight
 const corsOptions = {
@@ -30,6 +29,8 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+app.use(express.json());
 
 // Note: Put routes between transform and "*", otherwise it will create error
 app.use(transform);
