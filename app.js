@@ -19,12 +19,41 @@ import { API_MESSAGES, ERROR_CODES } from './src/constants/error.constants.js';
 app.set('PORT', process.argv[2] || process.env.PORT || 3000);
 
 
-// CORS configuration to allow dashboard origin and handle preflight
+// CORS configuration to allow dashboard/tracker origins and signature headers
+const allowedOrigins = [
+  'http://localhost:4400',
+  'http://localhost:5173',
+  'http://localhost:5000',
+  'http://localhost:3000',
+  'https://dashboard.digitoppers.in',
+  process.env.TRACKER_FRONTEND_URL
+].filter(Boolean);
+
 const corsOptions = {
-    origin: ['http://localhost:4400', 'https://dashboard.digitoppers.in'],
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+            return callback(null, true);
+        }
+        return callback(new Error('CORS policy does not allow access from this origin'), false);
+    },
     credentials: true,
     methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
-    allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'x-signature',
+      'x-service-signature',
+      'x-timestamp',
+      'x-service-name',
+      'x-api-key',
+      'x-device-id',
+      'x-request-timestamp',
+      'x-request-signature',
+      'x-security-version',
+      'x-offline-token'
+    ],
     exposedHeaders: ['Content-Disposition']
 };
 app.use(cors(corsOptions));

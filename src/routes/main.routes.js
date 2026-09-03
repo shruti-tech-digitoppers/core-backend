@@ -4,6 +4,8 @@ import reportsRoutes from './reports.routes.js';
 import updatesRoutes from './updates.routes.js';
 import adminRoutes from './admin.routes.js';
 import appUsersRoutes from './app-users.routes.js';
+import projectRoutes from './project.routes.js';
+import schoolRoutes from './school.routes.js';
 const router = Router();
 
 router.get('/', async (req, res) => {
@@ -15,6 +17,8 @@ router.use('/api/license', licenseRoutes);
 router.use(updatesRoutes);
 router.use(adminRoutes);
 
+router.use('/api/projects', projectRoutes);
+router.use('/api/schools', schoolRoutes);
 router.use('/api/reports', reportsRoutes);
 router.use('/api/app-users', appUsersRoutes);
 
