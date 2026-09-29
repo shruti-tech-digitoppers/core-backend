@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-export default new mongoose.Schema({
+const appUserSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -94,3 +94,8 @@ export default new mongoose.Schema({
 {
 	timestamps: true,
 });
+
+// Bulk-sync upserts filter on schoolId+projectId+userId; digi-dashboard joins reports on schoolId+userId.
+appUserSchema.index({ schoolId: 1, userId: 1 });
+
+export default appUserSchema;

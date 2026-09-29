@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { LICENSE_PLATFORMS, SOLUTIONS } from '../constants/platforms.constants.js';
 
 export default new mongoose.Schema(
   {
@@ -18,6 +19,15 @@ export default new mongoose.Schema(
     numberOfStudents: { type: Number, default: 0 },
     numberOfTeachers: { type: Number, default: 0 },
     numberOfLicenses: { type: Number, default: 0 },
+    // Mirrors digi-dashboard's School.platforms so saves from this service don't strip it.
+    platforms: [
+      {
+        platform: { type: String, enum: LICENSE_PLATFORMS, required: true },
+        solution: { type: String, enum: SOLUTIONS, default: null },
+        licenseCount: { type: Number, required: true, min: 1 },
+        licenseDays: { type: Number, required: true, min: 1, max: 10000 },
+      },
+    ],
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     coordinatorId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coordinator' },
   },
