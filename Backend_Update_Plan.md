@@ -1468,3 +1468,13 @@ Closure notes:
 - **Multiple active rollouts:** Final decision is to select the highest applicable app `versionCode` per platform for both Android and Windows. Risk remains for content conflicts if multiple different content versions are active for the same license.
 - **Rollback semantics:** Backend only observes events. Installer rollback remains app/installer-owned.
 - **Dashboard dependency:** Dashboard should send bundle `platform`, show parsed Windows metadata, support content `all`, and surface rollout validation errors, but the backend should enforce correctness regardless of dashboard behavior.
+
+## 13. Follow-up: `android_laptop` license platform
+
+Status: Implemented on `feat/platform-solution-user-reports-segregation-on-dashboard` (after Phase 8).
+
+`android_laptop` is a license and device platform for Android laptops. It is not a bundle platform.
+
+- `Device.platform`, `License.platform`, and `School.platforms[].platform` accept `android_laptop`.
+- `normalizeLicensePlatform` and `normalizeClientPlatform` map `tablet`, `ifp`, and `android_laptop` to app platform `android`, so those licenses receive Android bundles.
+- `License.solution` and the solution backfill are documented in [PLATFORM_AND_SOLUTION.md](PLATFORM_AND_SOLUTION.md). They do not change bundle upload, rollout targeting, or `/api/updates/check` beyond the extra Android license label.
