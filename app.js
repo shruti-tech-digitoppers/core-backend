@@ -19,14 +19,12 @@ import { API_MESSAGES, ERROR_CODES } from './src/constants/error.constants.js';
 app.set('PORT', process.argv[2] || process.env.PORT || 3000);
 
 
-// CORS configuration to allow dashboard/tracker origins and signature headers
+// CORS configuration — only browser-based clients need to be listed here.
+// Tracker backend calls this API server-to-server (no browser Origin header),
+// so CORS does not apply to tracker. Tracker is authenticated via x-service-signature.
+// Localhost origins are handled automatically in development via NODE_ENV check.
 const allowedOrigins = [
-  'http://localhost:4400',
-  'http://localhost:5173',
-  'http://localhost:5000',
-  'http://localhost:3000',
-  'https://dashboard.digitoppers.in',
-  process.env.TRACKER_FRONTEND_URL
+  'https://dashboard.digitoppers.in'
 ].filter(Boolean);
 
 const corsOptions = {
@@ -42,11 +40,6 @@ const corsOptions = {
     allowedHeaders: [
       'Content-Type',
       'Authorization',
-      'X-Requested-With',
-      'x-signature',
-      'x-service-signature',
-      'x-timestamp',
-      'x-service-name',
       'x-api-key',
       'x-device-id',
       'x-request-timestamp',
