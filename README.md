@@ -124,4 +124,10 @@ OR
   - Signing key
   - API key
 - The security parameters are encrypted and stored with the license
-- The API also returns associated school details if the license is successfully activated 
+- The API also returns associated school details if the license is successfully activated
+
+## License platforms and solutions
+
+License platform includes `android_laptop` as well as `tablet`, `windows`, `linux`, and `ifp`. Each license may have a `solution` of `smartshala` (classroom) or `epathshala_lab` (student devices). Windows and Linux have no default and stay unset until the dashboard assigns one.
+
+Report sync still stamps `metadata.licenseKey` from the authenticated license. The dashboard attributes usage to a platform and solution by that key. Schema, the solution backfill, and the Android update mapping for `android_laptop` are in [PLATFORM_AND_SOLUTION.md](PLATFORM_AND_SOLUTION.md). 

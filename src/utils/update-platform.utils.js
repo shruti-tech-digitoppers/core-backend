@@ -2,7 +2,7 @@ export const APP_PLATFORMS = Object.freeze(["android", "windows", "linux"]);
 export const BUNDLE_PLATFORMS = Object.freeze([...APP_PLATFORMS, "all"]);
 export const BUNDLE_TYPES = Object.freeze(["app", "content", "combined"]);
 
-const ANDROID_LICENSE_PLATFORMS = new Set(["tablet", "ifp"]);
+const ANDROID_LICENSE_PLATFORMS = new Set(["tablet", "ifp", "android_laptop"]);
 
 const normalizeString = (value) => {
   if (typeof value !== "string") return undefined;

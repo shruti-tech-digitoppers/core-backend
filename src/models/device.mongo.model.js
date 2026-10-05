@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const deviceSchema = new mongoose.Schema({
   deviceId: { type: String, required: true, index: true },
   licenseId: { type: mongoose.Schema.Types.ObjectId, ref: "License", required: true, index: true },
-  platform: { type: String, required: true, enum: ["android", "windows", "linux", "ifp", "tablet"] },
+  platform: { type: String, required: true, enum: ["android", "windows", "linux", "ifp", "tablet", "android_laptop"] },
   currentApp: {
     versionName: { type: String },
     versionCode: { type: Number }

@@ -24,6 +24,7 @@ describe("Update platform foundation", () => {
     it("normalizes Android license labels to the client app platform", () => {
       expect(normalizeLicensePlatform("tablet")).to.equal("android");
       expect(normalizeLicensePlatform("ifp")).to.equal("android");
+      expect(normalizeLicensePlatform("android_laptop")).to.equal("android");
       expect(normalizeLicensePlatform("windows")).to.equal("windows");
       expect(normalizeLicensePlatform("linux")).to.equal("linux");
     });

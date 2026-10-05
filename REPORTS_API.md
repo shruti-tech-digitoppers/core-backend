@@ -234,6 +234,9 @@ or
 - **Partial Success:** If some reports are invalid, valid ones are still stored and details are returned.
 - **Timestamps:** Use ISO 8601 format for all date fields.
 - **Security:** Never share your `signingKey` or `offlineToken` with unauthorized parties.
+- **License metadata:** The server overwrites `metadata.orgId`, `metadata.schoolId`, `metadata.licenseKey`, and `metadata.projectId` from the authenticated license. Clients do not choose which school a report belongs to.
+- **Platform and solution:** These are not report fields. They live on the license (`License.platform`, `License.solution`). The dashboard filters usage by looking up `metadata.licenseKey`. `deviceInfo.type` and `deviceInfo.os` stay client-supplied and are separate from the license platform. See [PLATFORM_AND_SOLUTION.md](PLATFORM_AND_SOLUTION.md).
+- **Per-user index:** `{ metadata.schoolId: 1, userId: 1, timestamp: -1 }` supports dashboard user lists and learning journeys. Build it as a rolling or background index in production.
 
 ---
 

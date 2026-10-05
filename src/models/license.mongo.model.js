@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { LICENSE_PLATFORMS, SOLUTIONS } from '../constants/platforms.constants.js';
 
 export default new mongoose.Schema(
   {
@@ -17,7 +18,9 @@ export default new mongoose.Schema(
     isFreeze: { type: Boolean, default: false },
     schoolId: { type: mongoose.Schema.Types.ObjectId, ref: 'School', required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
-    platform: { type: String, required: true, enum: ['tablet', 'windows', 'linux', 'ifp'] },
+    platform: { type: String, required: true, enum: LICENSE_PLATFORMS },
+    // Written by digi-dashboard; reports are attributed to a platform/solution via their licenseKey.
+    solution: { type: String, enum: SOLUTIONS, default: null },
     apiKey: { type: String, required: true },
     passphrase: { type: String, required: true },
     securityParams: {

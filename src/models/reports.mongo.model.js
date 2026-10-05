@@ -92,6 +92,8 @@ reportsSchema.index({ reportId: 1 }, { unique: true });
 // Indexes for performant aggregations and queries
 reportsSchema.index({ 'metadata.orgId': 1, timestamp: 1 });
 reportsSchema.index({ 'metadata.schoolId': 1, timestamp: 1 });
+// Per-user list and learning-journey queries (read by digi-dashboard). Build with a rolling/background build in production.
+reportsSchema.index({ 'metadata.schoolId': 1, userId: 1, timestamp: -1 });
 // reportsSchema.index({ subjectId: 1 });
 // reportsSchema.index({ categoryId: 1 });
 // reportsSchema.index({ subcategoryId: 1 });
