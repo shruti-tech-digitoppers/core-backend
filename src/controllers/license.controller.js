@@ -1,6 +1,6 @@
 import { License, School } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
-import { checkLicenseStatus } from '../utils/license.utils.js';
+import { checkLicenseStatus, isAppRefreshableLicense } from '../utils/license.utils.js';
 import { 
   generateSigningKey, 
   generateDeviceFingerprint, 
@@ -401,6 +401,67 @@ export const funMigrateDeviceId = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error migrating device ID',
+      error: error.message,
+      errorCode: ERROR_CODES.SERVER_ERROR,
+    });
+  }
+};
+
+/**
+ * Temporary ops reset for a recurring request: mark the license unregistered so
+ * another device can activate it. Leaves the key, term, freeze flag, and
+ * registeredTo in place; the next activation overwrites the device binding.
+ * Remove when a proper rebind flow replaces this.
+ *
+ * Called from the app (POST /api/license/:licenseId/refresh), which has no
+ * dashboard session. Only licenses under a demo or testing school, project, or
+ * organization may be cleared here. Live licenses stay on the dashboard route.
+ */
+export const funRefreshLicense = async (req, res) => {
+  const { licenseId } = req.params;
+
+  if (!licenseId || !/^[0-9a-fA-F]{24}$/.test(licenseId)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid license id',
+      errorCode: ERROR_CODES.BAD_REQUEST,
+    });
+  }
+
+  try {
+    const license = await License.findById(licenseId);
+    if (!license) {
+      return res.status(404).json({
+        success: false,
+        message: 'License not found',
+        errorCode: ERROR_CODES.DATA_NOT_FOUND,
+      });
+    }
+
+    const refreshable = await isAppRefreshableLicense(license);
+    if (!refreshable) {
+      return res.status(403).json({
+        success: false,
+        message: 'License refresh from the app is only allowed for demo or testing organizations, projects, and schools',
+        errorCode: ERROR_CODES.FORBIDDEN,
+      });
+    }
+
+    const wasRegistered = !!license.isRegistered;
+    if (wasRegistered) {
+      license.isRegistered = false;
+      await license.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: wasRegistered ? 'License registration cleared' : 'License is already unregistered',
+      data: { licenseKey: license.licenseKey, isRegistered: false },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error refreshing license',
       error: error.message,
       errorCode: ERROR_CODES.SERVER_ERROR,
     });

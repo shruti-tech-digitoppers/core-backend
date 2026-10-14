@@ -1,5 +1,30 @@
-import { License } from '../models/mongo.model.js';
+import { License, School, Project, Organization } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
+
+/**
+ * App-side license refresh is an unauthenticated device reset.
+ * Only these purpose markers may pass; anything else (including a missing flag) is live data.
+ */
+export const APP_REFRESH_PURPOSES = Object.freeze(['demo', 'testing']);
+
+export function isAppRefreshPurpose(doc) {
+  return APP_REFRESH_PURPOSES.includes(doc?.settings?.purpose);
+}
+
+/**
+ * A license is refreshable from the app when its school, project, or organization
+ * is explicitly demo or testing. Missing parents fail closed.
+ * @param {{ schoolId?: unknown, projectId?: unknown, orgId?: unknown }} license
+ * @returns {Promise<boolean>}
+ */
+export async function isAppRefreshableLicense(license) {
+  const [school, project, org] = await Promise.all([
+    license?.schoolId ? School.findById(license.schoolId).select('settings').lean() : null,
+    license?.projectId ? Project.findById(license.projectId).select('settings').lean() : null,
+    license?.orgId ? Organization.findById(license.orgId).select('settings').lean() : null,
+  ]);
+  return isAppRefreshPurpose(school) || isAppRefreshPurpose(project) || isAppRefreshPurpose(org);
+}
 
 /**
  * Shared license-state guard used by regular validation and migration flows.
