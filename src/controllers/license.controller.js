@@ -420,7 +420,7 @@ export const funMigrateDeviceId = async (req, res) => {
 export const funRefreshLicense = async (req, res) => {
   const { licenseId } = req.params;
 
-  if (!licenseId || !/^[0-9a-fA-F]{24}$/.test(licenseId)) {
+  if (!licenseId) {
     return res.status(400).json({
       success: false,
       message: 'Invalid license id',
@@ -429,7 +429,7 @@ export const funRefreshLicense = async (req, res) => {
   }
 
   try {
-    const license = await License.findById(licenseId);
+    const license = await License.findOne({ licenseKey: licenseId });
     if (!license) {
       return res.status(404).json({
         success: false,

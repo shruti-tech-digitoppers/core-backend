@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { registerSearchSync } from "../search/search-sync.hooks.js";
+// import { registerSearchSync } from "../search/search-sync.hooks.js";
 
 const schema = new mongoose.Schema({
 	orgId: { type: mongoose.Schema.Types.ObjectId, ref: "Organization", required: true, index: true },
@@ -56,6 +56,6 @@ schema.pre('findOneAndUpdate', function (next) {
 schema.index({ orgId: 1, projectNameLower: 1 });
 schema.index({ orgId: 1, projectIdLower: 1 });
 
-registerSearchSync(schema, 'project');
+// registerSearchSync(schema, 'project');
 
 export default schema;

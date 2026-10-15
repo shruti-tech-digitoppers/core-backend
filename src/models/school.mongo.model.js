@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { LICENSE_PLATFORMS, SOLUTIONS } from '../constants/platforms.constants.js';
-import { registerSearchSync } from '../search/search-sync.hooks.js';
+// import { registerSearchSync } from '../search/search-sync.hooks.js';
 
 const schema = new mongoose.Schema(
   {
@@ -76,6 +76,6 @@ schema.index({ orgId: 1, nameLower: 1 });
 schema.index({ orgId: 1, schoolIdLower: 1 });
 schema.index({ orgId: 1, projectId: 1, nameLower: 1 });
 
-registerSearchSync(schema, 'school');
+// registerSearchSync(schema, 'school');
 
 export default schema;
