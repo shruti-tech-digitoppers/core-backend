@@ -140,6 +140,39 @@ export const createProject = async (req, res) => {
 
     const savedProject = await project.save();
 
+    // Automatically trigger 8-Stage Timeline initialization in Project Tracker immediately
+    try {
+      const trackerBaseUrl = (process.env.TRACKER_BACKEND_URL || 'http://localhost:5000')
+        .trim().replace(/^["']|["']$/g, '').replace(/\/+$/, '');
+      const sharedSecret = (process.env.INTERNAL_SERVICE_SECRET || 'tracker_core_shared_secret_2026')
+        .trim().replace(/^["']|["']$/g, '');
+
+      fetch(`${trackerBaseUrl}/api/v1/projects/${savedProject._id}/initialize-timeline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-signature': sharedSecret,
+          'x-service-name': 'core-backend'
+        },
+        body: JSON.stringify({
+          _id: savedProject._id,
+          projectId: savedProject.projectId,
+          projectName: savedProject.projectName,
+          email: savedProject.email,
+          phone: savedProject.phone,
+          address: savedProject.address,
+          country: savedProject.country,
+          numberOfSchools: savedProject.numberOfSchools,
+          numberOfLicenses: savedProject.numberOfLicenses
+        })
+      }).catch(err => {
+        console.warn('[CoreBackend] Could not notify Project Tracker to initialize timeline:', err.message);
+      });
+    } catch (notifyErr) {
+      console.warn('[CoreBackend] Timeline initialization dispatch error:', notifyErr.message);
+    }
+
+
     return res.status(201).json({
       success: true,
       message: 'Project created successfully',

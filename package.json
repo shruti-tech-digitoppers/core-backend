@@ -4,12 +4,16 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "start": "node server.js",
     "test": "mocha --require @babel/register tests/setup.js 'tests/**/*.test.js'",
     "test:watch": "mocha --require @babel/register tests/setup.js 'tests/**/*.test.js' --watch",
     "test:coverage": "c8 mocha --require @babel/register tests/setup.js 'tests/**/*.test.js'",
     "migrate:update-platforms": "node src/migrations/backfill-update-platforms.js",
     "start:dev": "nodemon server.js",
     "dev": "nodemon --inspect server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   },
   "nodemonConfig": {
     "ext": "js",

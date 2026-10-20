@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: digitoppers-core-backend
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: STORAGE_DRIVER
+        value: local
+      - key: LOCAL_BUNDLES_DIR
+        value: storage
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTERNAL_SERVICE_SECRET
+        value: tracker_core_shared_secret_2026
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGO_URI_PROD
+        sync: false
