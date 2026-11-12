@@ -1,9 +1,66 @@
+import crypto from 'crypto';
 import { License } from '../models/mongo.model.js';
 import { checkLicenseStatus } from '../utils/license.utils.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
 import { decrypt, validateRequestSignature, validateOfflineToken } from '../utils/security.utils.js';
 
 export const authMiddleware = async (req, res, next) => {
+  // -------------------------------------------------------------
+  // 1. Internal Service / Tracker Signature Check (Server-to-Server)
+  // -------------------------------------------------------------
+  const internalSignature = req.headers['x-signature'] || req.headers['x-service-signature'];
+  const internalTimestamp = req.headers['x-timestamp'] || req.headers['x-request-timestamp'];
+  const serviceName = req.headers['x-service-name'] || 'tracker-backend';
+
+  if (internalSignature) {
+    try {
+      const secretKey = process.env.INTERNAL_SERVICE_SECRET || 'tracker_core_shared_secret_2026';
+
+      // Replay attack prevention check (5 minutes window) if timestamp provided
+      if (internalTimestamp) {
+        const requestTime = parseInt(internalTimestamp, 10);
+        if (!isNaN(requestTime) && Math.abs(Date.now() - requestTime) > 300000) {
+          return res.status(401).json({
+            message: 'Internal service request timestamp expired',
+            errorCode: ERROR_CODES.UNAUTHORIZED
+          });
+        }
+      }
+
+      // Check simple secret token or HMAC SHA256 signature
+      const bodyString = req.body && Object.keys(req.body).length > 0 ? JSON.stringify(req.body) : '';
+      const payload = `${req.method}:${req.originalUrl || req.url}:${internalTimestamp || ''}:${bodyString}`;
+      
+      const expectedHmac = crypto
+        .createHmac('sha256', secretKey)
+        .update(payload)
+        .digest('hex');
+
+      const isDirectSecretMatch = internalSignature === secretKey;
+      const isHmacMatch = internalSignature === expectedHmac;
+
+      // In development mode or with valid secret/HMAC
+      if (isDirectSecretMatch || isHmacMatch || (process.env.NODE_ENV === 'development' && internalSignature === 'dev-secret')) {
+        req.isInternalService = true;
+        req.serviceName = serviceName;
+        return next();
+      }
+
+      return res.status(401).json({
+        message: 'Invalid internal service signature',
+        errorCode: ERROR_CODES.UNAUTHORIZED
+      });
+    } catch (err) {
+      return res.status(401).json({
+        message: 'Error verifying internal service signature',
+        errorCode: ERROR_CODES.UNAUTHORIZED
+      });
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 2. Standard Client License & Security Headers Check
+  // -------------------------------------------------------------
   const {
     'x-api-key': apiKey,
     'x-device-id': deviceId,
