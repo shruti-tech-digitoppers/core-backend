@@ -12,6 +12,8 @@ import gradeStreamRoutes from './grade-stream.routes.js';
 import l0categoriesRoutes from './l0categories.routes.js';
 import languageRoutes from './language.routes.js';
 import subjectRoutes from './subject.routes.js';
+import solutionRoutes from './solution.routes.js';
+import hardwareRoutes from './hardware.routes.js';
 const router = Router();
 
 router.get('/', async (req, res) => {
@@ -35,6 +37,9 @@ router.use('/api/grade-streams', gradeStreamRoutes);
 router.use('/api/l0categories', l0categoriesRoutes);
 router.use('/api/languages', languageRoutes);
 router.use('/api/subjects', subjectRoutes);
+router.use('/api/solutions', solutionRoutes);
+router.use('/api/hardwares', hardwareRoutes);
+router.use('/api/hardware', hardwareRoutes);
 
 // return 200 with Date header
 router.head('/api/health', (req, res) => {
