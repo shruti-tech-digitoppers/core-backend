@@ -8,9 +8,9 @@ export const API_MESSAGES = {
 	422: 'Invalid',
 	500: 'Internal Server Error',
 	502: 'Bad Gateway',
-  };
-  
-  export const ERROR_CODES = {
+};
+
+export const ERROR_CODES = {
 	BAD_REQUEST: 'code/bad-request',
 	AUTH_TOKEN_EXPIRED: 'auth/token-expired',
 	UNVERIFIED: 'auth/not-verified',
@@ -30,7 +30,6 @@ export const API_MESSAGES = {
 	INVALID_ARGUMENT: 'code/invalid-argument',
 	UNKNOWN_ERROR: 'code/unknown-error',
 	ACCOUNT_ALREADY_EXISTS: 'auth/account_already_exists',
-  };
+};
 
-//  export const VALIDATION_ERROR = 'code/validation-error';
-  
+

@@ -44,8 +44,10 @@ export const getProjects = async (req, res) => {
 export const getProject = async (req, res) => {
   try {
     const { id } = req.params;
-    // Query by either Mongo ObjectId _id or string projectId (e.g. "p12345")
-    const query = id.match(/^[0-9a-fA-F]{24}$/) ? { _id: id } : { projectId: id };
+    // Query by either Mongo ObjectId _id or string projectId (e.g. "p1793013764468")
+    const query = id.match(/^[0-9a-fA-F]{24}$/)
+      ? { _id: id }
+      : { $or: [{ projectId: id }, { projectIdLower: id.toLowerCase() }, { projectId: id.toLowerCase() }] };
 
     const project = await Project.findOne(query)
       .populate('country', '_id name code')
@@ -77,7 +79,9 @@ export const getProject = async (req, res) => {
 export const getProjectSchools = async (req, res) => {
   try {
     const { id } = req.params;
-    const projectQuery = id.match(/^[0-9a-fA-F]{24}$/) ? { _id: id } : { projectId: id };
+    const projectQuery = id.match(/^[0-9a-fA-F]{24}$/)
+      ? { _id: id }
+      : { $or: [{ projectId: id }, { projectIdLower: id.toLowerCase() }, { projectId: id.toLowerCase() }] };
     const project = await Project.findOne(projectQuery);
 
     if (!project) {
@@ -158,7 +162,9 @@ export const createProject = async (req, res) => {
 export const updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const query = id.match(/^[0-9a-fA-F]{24}$/) ? { _id: id } : { projectId: id };
+    const query = id.match(/^[0-9a-fA-F]{24}$/)
+      ? { _id: id }
+      : { $or: [{ projectId: id }, { projectIdLower: id.toLowerCase() }, { projectId: id.toLowerCase() }] };
 
     const updatedProject = await Project.findOneAndUpdate(
       query,
@@ -192,7 +198,9 @@ export const updateProject = async (req, res) => {
 export const deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const query = id.match(/^[0-9a-fA-F]{24}$/) ? { _id: id } : { projectId: id };
+    const query = id.match(/^[0-9a-fA-F]{24}$/)
+      ? { _id: id }
+      : { $or: [{ projectId: id }, { projectIdLower: id.toLowerCase() }, { projectId: id.toLowerCase() }] };
 
     const project = await Project.findOneAndDelete(query);
     if (!project) {

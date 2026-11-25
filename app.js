@@ -16,7 +16,7 @@ import dashboardRoutes from './dashboard/routes/main.routes.js';
 import { transform } from './src/interceptors/request.interceptor.js';
 import { API_MESSAGES, ERROR_CODES } from './src/constants/error.constants.js';
 
-app.set('PORT', process.argv[2] || process.env.PORT || 3000);
+app.set('PORT', process.argv[2] || process.env.PORT || 3001);
 
 
 // CORS configuration — only browser-based clients need to be listed here.

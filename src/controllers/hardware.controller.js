@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 import { Hardware, Solution } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
+import { ensureSolutionsAndHardwareSeeded } from '../database/mongoose.db.js';
 
 export const getHardwares = async (req, res) => {
   try {
+    await ensureSolutionsAndHardwareSeeded();
     const { solutionId, solutionIds, solutionKey, solutionKeys, includeInactive, search } = req.query;
 
-    const filter = includeInactive === 'true' ? {} : { isActive: true };
+    const filter = (includeInactive === 'true' || includeInactive === true) ? {} : { isActive: { $ne: false } };
 
     if (search) {
       filter.$or = [

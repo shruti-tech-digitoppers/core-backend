@@ -5,7 +5,8 @@ import { School, License, Project } from '../models/mongo.model.js';
 export const getSchool = async (req, res) => {
   const { schoolId } = req.params;
   try {
-    const school = await School.findById(schoolId)
+    const query = schoolId.match(/^[0-9a-fA-F]{24}$/) ? { _id: schoolId } : { schoolId: schoolId };
+    const school = await School.findOne(query)
       .populate('projectId', '_id projectId projectName')
       .populate('coordinatorId', '_id name email phone')
       .populate('cityId', '_id name')
@@ -128,11 +129,12 @@ export const createSchool = async (req, res) => {
 export const deleteSchool = async (req, res) => {
   try {
     const { schoolId } = req.params;
-    const school = await School.findByIdAndDelete(schoolId);
+    const query = schoolId.match(/^[0-9a-fA-F]{24}$/) ? { _id: schoolId } : { schoolId: schoolId };
+    const school = await School.findOneAndDelete(query);
 
     if (school) {
       // Cascade delete licenses
-      await License.deleteMany({ schoolId });
+      await License.deleteMany({ $or: [{ schoolId: school._id }, { schoolId: school.schoolId }] });
 
       // Decrement project count
       if (school.projectId) {
@@ -168,7 +170,8 @@ export const updateSchool = async (req, res) => {
   } = req.body;
 
   try {
-    const updated = await School.findByIdAndUpdate(schoolId, {
+    const query = schoolId.match(/^[0-9a-fA-F]{24}$/) ? { _id: schoolId } : { schoolId: schoolId };
+    const updated = await School.findOneAndUpdate(query, {
       name,
       email,
       phone,

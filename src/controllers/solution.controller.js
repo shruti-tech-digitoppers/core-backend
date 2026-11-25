@@ -1,11 +1,13 @@
 import mongoose from 'mongoose';
 import { Solution } from '../models/mongo.model.js';
 import { ERROR_CODES } from '../constants/error.constants.js';
+import { ensureSolutionsAndHardwareSeeded } from '../database/mongoose.db.js';
 
 export const getSolutions = async (req, res) => {
   try {
-    const includeInactive = req.query.includeInactive === 'true';
-    const filter = includeInactive ? {} : { isActive: true };
+    await ensureSolutionsAndHardwareSeeded();
+    const includeInactive = req.query.includeInactive === 'true' || req.query.includeInactive === true;
+    const filter = includeInactive ? {} : { isActive: { $ne: false } };
     const solutions = await Solution.find(filter).sort({ index: 1, createdAt: 1 });
 
     res.status(200).json({
